@@ -3,7 +3,7 @@ name: Backup prod
 on:
   push:
     branches:
-      main
+      - main
     paths:
       - 'supabase/**'
   workflow_dispatch:

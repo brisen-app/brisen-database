@@ -20,9 +20,13 @@ npx supabase link --project-ref tlnldlywflpgvjepxwxz --password <db-password-dev
 ```
 
 ## Development workflow
-1. Make changes to the database in the development environments [Supabase Dashobard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz)
-1. Pull the changes to the local database
-    - `npx supabase db pull`
+1. Create a new branch for the using one of the following naming conventions:
+    - `feature/<feature-name>`
+    - `bugfix/<bug-name>`
+1. Make your changes to the database in the [Supabase Dashboard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz)
+1. Pull the changes to the local database, `migration-name` optional.
+    - `npx supabase db pull <migration-name>`
+    - **Do not** update remote migration history when prompted.
 1. Commit the changes to the repository, changes will be pushed to production upon merge.
 
 ## Pull and push data
