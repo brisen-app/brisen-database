@@ -1,6 +1,11 @@
 name: Reset development environment
 
 on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'supabase/**'
   workflow_dispatch:
 
 jobs:
