@@ -15,7 +15,9 @@ Repo for maintaining the Brisen supabase codebase.
 1. Install Supabase CLI
     - `npm install`
 1. Link the supabase development environment
-    - `npx supabase link --project-ref tlnldlywflpgvjepxwxz --password <db-password-dev>`
+```bash
+npx supabase link --project-ref tlnldlywflpgvjepxwxz --password <db-password-dev>
+```
 
 ## Development workflow
 1. Make changes to the database in the development environments [Supabase Dashobard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz)
