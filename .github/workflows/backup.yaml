@@ -1,0 +1,39 @@
+name: Backup prod
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/**'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * MON'
+jobs:   
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+    
+      - name: Link Supabase project
+        run: supabase link --project $SUPABASE_PROJECT_ID
+      - name: Backup roles
+        run: supabase db dump -f backup/roles.sql --role-only
+      - name: Backup schema
+        run: supabase db dump -f backup/schema.sql
+      - name: Backup data
+        run: supabase db dump -f backup/data.sql --data-only --use-copy
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Backup
