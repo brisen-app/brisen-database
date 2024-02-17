@@ -11,11 +11,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    environment: development
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD_DEV }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF_DEV }}
     
     steps:
       - uses: actions/checkout@v4
