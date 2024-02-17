@@ -25,7 +25,7 @@ jobs:
 
       - name: Start Supabase
         run:
-          supabase link --project $SUPABASE_PROJECT_ID
+          supabase link --project-ref $SUPABASE_PROJECT_ID
           supabase start
 
       - name: Run tests
