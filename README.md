@@ -26,10 +26,24 @@ Repo for maintaining the Brisen supabase codebase.
     EXPO_PUBLIC_SB_ANON=<public_anon_key>
     EXPO_PUBLIC_SB_SERVICE_ROLE=<service_role_key>
     EXPO_PUBLIC_SB_JWT_SECRET=<jwt_secret>
+    PROJECT_REF_DEV=tlnldlywflpgvjepxwxz
+    DB_PASSWORD_DEV=<dev_db_password>
     ```
     Copy this file to the root of the [`brisen-client`](https://github.com/brisen-app/brisen-client)-repo if you are making changes to the client as well.
 
-## Development workflow
+## Remote development workflow
+1. Create and checkout a new branch from `develop` with the following naming convention:
+    - `feature/<feature-name>`
+    - `bugfix/<bug-name>`
+1. Make your changes to the database in the [Supabase Dashboard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz)
+1. When you are done, pull the remote changes
+    ```bash
+    .\pull_remote.ps1
+    ```
+1. Commit and push your changes to the branch
+1. Create a pull request with `develop` as the target branch
+
+## Local development workflow
 1. Create and checkout a new branch from `develop` with the following naming convention:
     - `feature/<feature-name>`
     - `bugfix/<bug-name>`
