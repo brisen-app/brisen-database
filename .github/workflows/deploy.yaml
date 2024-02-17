@@ -1,12 +1,12 @@
-name: Deploy to prod
+name: Deploy
 
 on:
   push:
     branches:
       - main
+      - develop
     paths:
-      - 'supabase/**'
-  workflow_dispatch:
+      - 'supabase/**/*'
 
 jobs:
   migrate:
