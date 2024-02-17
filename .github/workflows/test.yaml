@@ -25,6 +25,9 @@ jobs:
       - name: Link to Development environment
         run: supabase link --project-ref $SUPABASE_PROJECT_ID
       
+      - name: Initialize Supabase with the latest migrations
+        run: supabase init
+
       - name: Start Supabase
         run: supabase db start
 
