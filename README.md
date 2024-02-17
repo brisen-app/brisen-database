@@ -20,10 +20,9 @@ Repo for maintaining the Brisen supabase codebase.
     - Make sure Docker is running
     - `npx supabase start` 
     - The Supabase UI will be accessible [here](http://localhost:54323)
-
 1. Create a `.env` file in the root of the project and add the following values from the printed output of `npx supabase start`:
     ```env
-    EXPO_PUBLIC_SB_URL=http://localhost:54323
+    EXPO_PUBLIC_SB_URL=http://localhost:54321
     EXPO_PUBLIC_SB_ANON=<public_anon_key>
     EXPO_PUBLIC_SB_SERVICE_ROLE=<service_role_key>
     EXPO_PUBLIC_SB_JWT_SECRET=<jwt_secret>
@@ -31,37 +30,22 @@ Repo for maintaining the Brisen supabase codebase.
     Copy this file to the root of the [`brisen-client`](https://github.com/brisen-app/brisen-client)-repo if you are making changes to the client as well.
 
 ## Development workflow
-1. Create and checkout a new branch for the using one of the following naming conventions:
+1. Create and checkout a new branch from `develop` with the following naming convention:
     - `feature/<feature-name>`
     - `bugfix/<bug-name>`
-
-1. Run Supabase
-    - `npx supabase start`
+1. Run Supabase with the latest database changes
+    - Start the instance: `npx supabase start`
+    - Load the latest database changes: `npx supabase reset`
     - The Supabase UI will be accessible [here](http://localhost:54323)
-
-
+    - If you get an error, delete the `supabase/.temp` directory and try again
 1. Make your changes to the database in the [Supabase Dashboard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz)
-
-
-
-1. Pull the changes to the local database, `migration-name` optional.
-    - `npx supabase db pull <migration-name>`
-    - **Do not** update remote migration history when prompted.
-1. Commit the changes to the repository, changes will be pushed to production upon merge.
-
-## Pull and push data
-
-This is **only** supposed to be used for development purposes. **Do not** use this in production.
-
-### Pull data
-Make sure to only commit relevant changes to the seed.sql file.
-```bash
-npx supabase db dump --schema public --data-only -f supabase/seed.sql
-```
-
-### Push data
-This will rebuild the database from the migrations and inserting the seed data.
-
-```bash
-npx supabase db reset
-```
+    - If you've added test data, add it to the `seed.sql`-file:
+        ```bash
+        npx supabase db dump --local --data-only -f supabase/seed.sql
+        ```
+1. When you are done, create a new migration file and commit the changes to the repository.
+    ```bash
+    npx supabase migrate new <migration-name>
+    ```
+1. Commit and push changes to the branch
+1. Create a pull request with `develop` as the target branch
