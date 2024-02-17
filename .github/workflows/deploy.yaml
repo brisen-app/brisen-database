@@ -1,16 +1,17 @@
-name: Deploy to prod
+name: Deploy to Production
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
-      - 'supabase/**'
-  workflow_dispatch:
+      - 'supabase/**/*'
 
 jobs:
-  migrate:
+  deploy:
     runs-on: ubuntu-latest
+    environment: production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -22,5 +23,8 @@ jobs:
         with:
           version: latest
 
-      - run: supabase link --project-ref $SUPABASE_PROJECT_ID
-      - run: supabase db push
+      - name: Link to Production environment
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID
+
+      - name: Run deployment
+        run: supabase db push
