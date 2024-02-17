@@ -35,7 +35,7 @@ Repo for maintaining the Brisen supabase codebase.
     - `bugfix/<bug-name>`
 1. Run Supabase with the latest database changes
     - Start the instance: `npx supabase start`
-    - Load the latest database changes: `npx supabase reset`
+    - Load the latest database changes: `npx supabase db reset` (This must be run after every branch switch, merge or rebase)
     - The Supabase UI will be accessible [here](http://localhost:54323)
     - If you get an error, delete the `supabase/.temp` directory and try again
 1. Make your changes to the database in the [Supabase Dashboard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz)
