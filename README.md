@@ -1,6 +1,6 @@
 # Brisen Database
 Repo for maintaining the Brisen supabase codebase. 
-- [Supabase Local Dev/CLI Docs](https://supabase.com/docs/guides/cli/getting-started)
+- [Supabase Local Dev/CLI Docs](https://supabase.com/docs/guides/cli/local-development)
 
 ## Setup
 1. Install Node LTS
