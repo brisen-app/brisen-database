@@ -22,11 +22,11 @@ jobs:
         with:
           version: latest
 
-      - name: Link to Development environment
-        run: supabase link --project-ref $SUPABASE_PROJECT_ID
-
       - name: Start Supabase
         run: supabase db start
+
+      - name: Link to development environment
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID
 
       - name: Run tests
         run: supabase test db
