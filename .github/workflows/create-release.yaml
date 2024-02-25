@@ -22,14 +22,15 @@ jobs:
         with:
           version: latest
 
-      - name: Start Supabase and Link Project
+      - name: Start Supabase and link project
         run: | 
           supabase db start
           supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+          supabase db reset
 
       - name: Fetch changes and test data
         run: |
-          supabase db pull ${{ inputs.release }}
+          supabase db pull ${{ inputs.release }} --debug
 
       - name: Create Pull Request
         id: create_pr
