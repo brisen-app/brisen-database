@@ -35,16 +35,18 @@ jobs:
         run: mkdir -p supabase/migrations
 
       - name: Fetch changes and test data
+        id: fetch
         run: |
           supabase db pull ${{ inputs.release }}
+          supabase db dump --schema public --data-only -f supabase/seed.sql
 
       - name: Create Pull Request
         id: create_pr
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "Deploy: ${{ inputs.release }}"
+          title: "Deploy release ${{ inputs.release }}"
           body: "This PR contains the changes for release ${{ inputs.release }}."
           branch: "releases/${{ inputs.release }}"
-          base: "main"
+          base: main
           assignees: mrkallerud
           reviewers: mrkallerud
