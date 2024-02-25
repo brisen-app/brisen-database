@@ -30,7 +30,6 @@ jobs:
       - name: Fetch changes and test data
         run: |
           supabase db pull ${{ inputs.release }}
-          supabase db dump --linked --data-only -f supabase/seed.sql
 
       - name: Create Pull Request
         id: create_pr
