@@ -1,0 +1,45 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release version'
+        type: string
+        required: true
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD_DEV }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF_DEV }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase and Link Project
+        run: | 
+          supabase db start
+          supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+
+      - name: Fetch changes and test data
+        run: |
+          supabase db pull ${{ inputs.release }}
+          supabase db dump --linked --data-only -f supabase/seed.sql
+
+      - name: Create Pull Request
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Deploy: ${{ inputs.release }}"
+          body: "This PR contains the changes for release ${{ inputs.release }}."
+          base: "releases/${{ inputs.release }}"
+          branch: "main"
+          assignees: mrkallerud
+          reviewers: mrkallerud
