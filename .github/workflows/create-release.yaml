@@ -28,9 +28,7 @@ jobs:
           supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
 
       - name: Ensure migrations directory exists
-        run: | 
-          ls
-          mkdir -p supabase/migrations
+        run: mkdir -p supabase/migrations
 
       - name: Fetch changes and test data
         run: |
@@ -43,7 +41,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: "Deploy: ${{ inputs.release }}"
           body: "This PR contains the changes for release ${{ inputs.release }}."
-          base: "releases/${{ inputs.release }}"
-          branch: "main"
+          branch: "releases/${{ inputs.release }}"
+          base: "main"
           assignees: mrkallerud
           reviewers: mrkallerud
