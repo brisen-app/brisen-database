@@ -26,11 +26,15 @@ jobs:
         run: | 
           supabase db start
           supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
-          supabase db reset
+
+      - name: Ensure migrations directory exists
+        run: | 
+          ls
+          mkdir -p supabase/migrations
 
       - name: Fetch changes and test data
         run: |
-          supabase db pull ${{ inputs.release }} --debug
+          supabase db pull ${{ inputs.release }}
 
       - name: Create Pull Request
         id: create_pr
