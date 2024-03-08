@@ -46,7 +46,6 @@ jobs:
         with:
           title: "Deploy release ${{ inputs.release }}"
           body: "This PR contains the changes for release ${{ inputs.release }}."
-          branch: "releases/${{ inputs.release }}"
+          branch: "release/${{ inputs.release }}"
           base: main
-          assignees: mrkallerud
           reviewers: mrkallerud
