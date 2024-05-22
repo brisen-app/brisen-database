@@ -3,10 +3,10 @@ Repo for maintaining the Brisen supabase codebase.
 - [Supabase Local Dev/CLI Docs](https://supabase.com/docs/guides/cli/local-development)
 
 ## Development
-Make your changes to the database in the [Supabase Dashboard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz).
+1. Make your changes to the database in the [Supabase Dashboard](https://supabase.com/dashboard/project/tlnldlywflpgvjepxwxz).
 
-For each new release, run the [Create Release](https://github.com/brisen-app/brisen-database/actions/workflows/create-release.yaml) GitHub Action from branch to create a new release branch and PR.
-- Any changes to edge functions must be merged into this release branch before it is merged into `develop`.
+1. For each new release, run the [Create Release](https://github.com/brisen-app/brisen-database/actions/workflows/create-release.yaml) GitHub Action from `main` branch to create a new release branch and PR.
+    - Any changes to edge functions must be merged into this release branch before it is merged into `main`.
 
 ### Edge function development workflow
 *TODO: Add instructions for setting up edge function development workflow.*
