@@ -11,6 +11,13 @@ export enum Status {
 
 export type NotionItem = {
   id: string
+  sync_status: Status
+  created_at: string
   modified_at: string
-  status: Status
+}
+
+export type NotionIndex = {
+  id: string
+  name: string
+  enabled: boolean
 }
