@@ -2,11 +2,12 @@
 import { PageObjectResponse, QueryDatabaseParameters } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
 import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
 import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
-import { NotionItem, Status } from './models.ts'
+import { NotionIndex, NotionItem, Status } from './models.ts'
 
 type Filter = QueryDatabaseParameters['filter']
 
 const INDEX_ID = 'debb1582f2f641f29a1eaec1a455943e'
+const SYNC_STATUS_KEY = 'sync_status'
 const NOTION_SECRET = Deno.env.get('NOTION_SECRET')
 if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 
@@ -15,13 +16,13 @@ const notion = new Client({ auth: NOTION_SECRET })
 const NOTION_STATUS_FILTER: Filter = {
   or: [
     {
-      property: 'status',
+      property: SYNC_STATUS_KEY,
       status: {
         equals: Status.CREATE,
       },
     },
     {
-      property: 'status',
+      property: SYNC_STATUS_KEY,
       status: {
         equals: Status.DELETE,
       },
@@ -63,13 +64,15 @@ export async function fetchItems(databaseId: string) {
 }
 
 export async function fetchDatabaseIndex() {
-  return await query(INDEX_ID, NOTION_INDEX_FILTER)
+  return (await query(INDEX_ID, NOTION_INDEX_FILTER)) as NotionIndex[]
 }
 
 function toObject(page: PageObjectResponse): { [key: string]: ReturnType<typeof getValue> } {
   const object: { [key: string]: ReturnType<typeof getValue> } = {}
 
   object.id = page.id
+  object.modified_at = page.last_edited_time
+  object.created_at = page.created_time
   if (page.icon?.type === 'emoji') object.icon = page.icon.emoji
 
   for (const key in page.properties) {

@@ -2,30 +2,47 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-// Docs: https://supabase.com/docs/reference/javascript/introduction
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
 import { fetchDatabaseIndex, fetchItems } from './notion-api.ts'
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-if (!SUPABASE_URL) throw new Error('SUPABASE_URL is required!')
-
-const SUPABASE_SECRET = Deno.env.get('SUPABASE_ANON_KEY')
-if (!SUPABASE_SECRET) throw new Error('SUPABASE_ANON_KEY is required!')
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET)
+import { pushItem } from './supabase-api.ts'
 
 // TODO: Setup cron https://youtu.be/-U6DJcjVvGo?si=NLUtt5fftG65RcwF
 
 Deno.serve(async () => {
-  const indecies = await fetchDatabaseIndex()
+  try {
+    const startTime = new Date()
+    const tables = await fetchDatabaseIndex()
 
-  for (const index of indecies) {
-    for (const item of await fetchItems(index.id!)) {
-      console.log(item)
+    let itemCount = 0
+    for (const table of tables) {
+      console.log('fetching:', table.name)
+      const items = await fetchItems(table.id)
+      console.log('successully fetched:', items.length, table.name, 'from Notion')
+
+      for (const item of items) {
+        await pushItem(table.name, item)
+        itemCount++
+      }
     }
-  }
 
-  return new Response(JSON.stringify(indecies), { headers: { 'Content-Type': 'application/json' } })
+    const endTime = new Date()
+    const logItem = {
+      start: startTime,
+      duration: startTime.getTime() - endTime.getTime(),
+      itemCount: itemCount,
+      tableCount: tables.length,
+      tables: tables.map((table) => table.name),
+    }
+
+    return new Response(JSON.stringify(logItem), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  } catch (error) {
+    console.error(error)
+    return new Response(error.message, { status: 500 })
+  }
 })
 
 /* To invoke locally:
@@ -39,3 +56,6 @@ Deno.serve(async () => {
     --data '{"name":"Functions"}'
 
 */
+
+// For testing:
+// npx supabase functions serve --env-file .\supabase\.env.local
