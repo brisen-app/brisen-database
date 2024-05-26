@@ -2,7 +2,6 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-import { LogStatus, NotionLogItem } from './models.ts'
 import Notion from './notion-api.ts'
 import { pushItem } from './supabase-api.ts'
 
@@ -15,11 +14,11 @@ Deno.serve(async () => {
       'Content-Type': 'application/json',
     },
   }
-  const logResponse: NotionLogItem = {
+  const logResponse = {
     title: 'Sync completed',
     timestamp: new Date(),
     duration: 0,
-    type: LogStatus.INFO,
+    type: Notion.LogType.INFO,
   }
 
   try {
@@ -38,7 +37,7 @@ Deno.serve(async () => {
     console.error(error)
     responseInit.status = 500
     logResponse.title = `Sync failed: ${error.message}`
-    logResponse.type = LogStatus.ERROR
+    logResponse.type = Notion.LogType.ERROR
   }
 
   logResponse.duration = Date.now() - logResponse.timestamp.getTime()

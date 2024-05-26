@@ -6,7 +6,6 @@ import {
 } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
 import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
 import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
-import { NotionIndex, NotionItem, Status } from './models.ts'
 
 type Filter = QueryDatabaseParameters['filter']
 type NotionProperty = PageObjectResponse['properties'][string]
@@ -22,41 +21,38 @@ if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 
 const notion = new Client({ auth: NOTION_SECRET })
 
-const NOTION_STATUS_FILTER: Filter = {
-  or: [
-    {
-      property: SYNC_STATUS_KEY,
-      status: {
-        equals: Status.CREATE,
-      },
-    },
-    {
-      property: SYNC_STATUS_KEY,
-      status: {
-        equals: Status.DELETE,
-      },
-    },
-  ],
+enum Status {
+  NOTHING = 'nothing',
+
+  CREATE = 'create',
+  DELETE = 'delete',
+
+  FAILED = 'failed',
+  UNPUBLISHED = 'unpublished',
+  PUBLISHED = 'published',
 }
 
-const NOTION_INDEX_FILTER: Filter = {
-  and: [
-    {
-      property: 'enabled',
-      checkbox: {
-        equals: true,
-      },
-    },
-    {
-      property: 'id',
-      rich_text: {
-        is_not_empty: true,
-      },
-    },
-  ],
+enum LogType {
+  ERROR = 'error',
+  WARN = 'warning',
+  INFO = 'info',
 }
 
-async function query(databaseId: string, filter: Filter): Promise<Partial<NotionItem>[]> {
+type NotionItem = {
+  id: string
+  created_at: string
+  modified_at: string
+} & {
+  [key: string]: ReturnType<typeof getValue>
+}
+
+type NotionIndex = {
+  id: string
+  name: string
+  enabled: boolean
+}
+
+async function query(databaseId: string, filter: Filter) {
   const response = await notion.databases.query({
     database_id: databaseId,
     filter: filter,
@@ -69,13 +65,41 @@ async function query(databaseId: string, filter: Filter): Promise<Partial<Notion
 }
 
 async function fetchItems(databaseId: string) {
-  return (await query(databaseId, NOTION_STATUS_FILTER)) as NotionItem[] & {
-    [key: string]: ReturnType<typeof getValue>
-  }
+  return (await query(databaseId, {
+    or: [
+      {
+        property: SYNC_STATUS_KEY,
+        status: {
+          equals: Status.CREATE,
+        },
+      },
+      {
+        property: SYNC_STATUS_KEY,
+        status: {
+          equals: Status.DELETE,
+        },
+      },
+    ],
+  })) as (NotionItem & { sync_status: Status })[]
 }
 
 async function fetchDatabaseIndex() {
-  return (await query(INDEX_ID, NOTION_INDEX_FILTER)) as NotionIndex[]
+  return (await query(INDEX_ID, {
+    and: [
+      {
+        property: 'enabled',
+        checkbox: {
+          equals: true,
+        },
+      },
+      {
+        property: 'id',
+        rich_text: {
+          is_not_empty: true,
+        },
+      },
+    ],
+  })) as unknown as NotionIndex[]
 }
 
 async function pushItem(databaseId: string, item: Record<string, unknown>) {
@@ -101,15 +125,14 @@ function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParame
   return properties
 }
 
-function toObject(page: PageObjectResponse): NotionItem & { [key: string]: ReturnType<typeof getValue> } {
+function toObject(page: PageObjectResponse): NotionItem {
   const item: ReturnType<typeof toObject> = {
     id: page.id,
-    sync_status: Status.NOTHING,
     modified_at: page.last_edited_time,
     created_at: page.created_time,
   }
 
-  if (page.icon?.type === 'emoji') item.icon = page.icon.emoji
+  if (page.icon?.type === 'emoji') item.icon = page.icon.emoji.toString()
 
   for (const key in page.properties) {
     item[key] = getValue(page.properties[key])
@@ -191,6 +214,8 @@ function getValue(property: NotionProperty) {
 }
 
 const Notion = {
+  Status,
+  LogType,
   fetchItems,
   fetchDatabaseIndex,
   log,
