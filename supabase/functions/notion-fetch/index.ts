@@ -31,7 +31,15 @@ Deno.serve(async () => {
 
       for (const item of items) {
         try {
-          await Supabase.pushItem(table.name, item)
+          switch (item.sync_status) {
+            case Notion.SyncStatus.CREATE:
+              await Supabase.pushItem(table.name, item)
+              break
+            case Notion.SyncStatus.DELETE:
+              await Supabase.deleteItem(table.name, item)
+              break
+            default:
+          }
         } catch (error) {
           if (!(error instanceof Error)) throw error
           console.warn(error.message)

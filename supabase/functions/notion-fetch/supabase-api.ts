@@ -37,6 +37,17 @@ async function upsertItem(table: string, item: NotionItem) {
   return { data: response.data, status: response.count }
 }
 
-const Supabase = { pushItem }
+async function deleteItem(table: string, item: NotionItem) {
+  const response = await supabase.from(table).delete().eq('id', item.id)
+  if (response.error)
+    throw new Error(
+      `deleteItem(): ${response.status} ${response.statusText}:\n${JSON.stringify(response.error, null, 2)}`
+    )
+
+  console.log(`deleted: '${item.id}'`)
+  return { data: response.data, status: response.count }
+}
+
+const Supabase = { pushItem, deleteItem }
 
 export default Supabase

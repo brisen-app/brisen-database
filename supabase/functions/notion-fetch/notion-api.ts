@@ -20,7 +20,7 @@ if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 
 const notion = new Client({ auth: NOTION_SECRET })
 
-enum Status {
+enum SyncStatus {
   NOTHING = 'nothing',
 
   CREATE = 'create',
@@ -98,19 +98,19 @@ async function fetchItems(databaseId: string, since: Date | null) {
           {
             property: SYNC_STATUS_KEY,
             status: {
-              equals: Status.CREATE,
+              equals: SyncStatus.CREATE,
             },
           },
           {
             property: SYNC_STATUS_KEY,
             status: {
-              equals: Status.DELETE,
+              equals: SyncStatus.DELETE,
             },
           },
         ],
       },
     ],
-  })) as (NotionItem & { sync_status: Status })[]
+  })) as (NotionItem & { sync_status: SyncStatus })[]
 }
 
 async function fetchDatabaseIndex() {
@@ -285,7 +285,7 @@ function getValue(property: NotionProperty) {
 }
 
 const Notion = {
-  Status,
+  SyncStatus,
   LogType,
   fetchItems,
   fetchDatabaseIndex,
