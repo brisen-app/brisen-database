@@ -33,7 +33,7 @@ Deno.serve(async () => {
         try {
           await Supabase.pushItem(table.name, item)
         } catch (error) {
-          if (!(error instanceof Error)) continue
+          if (!(error instanceof Error)) throw error
           console.warn(error.message)
           Notion.logError(`Performing '${item.sync_status}' on '${item.id}' failed`, error)
         }

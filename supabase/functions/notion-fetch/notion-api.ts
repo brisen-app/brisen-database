@@ -61,15 +61,21 @@ export type NotionLog = {
 }
 
 async function query(databaseId: string, filter: Filter) {
-  const response = await notion.databases.query({
-    database_id: databaseId,
-    filter: filter,
-  })
+  try {
+    const response = await notion.databases.query({
+      database_id: databaseId,
+      filter: filter,
+    })
 
-  return response.results.map((result) => {
-    if (!isFullPage(result)) throw new TypeError('Not a full page object')
-    return toObject(result)
-  })
+    return response.results.map((result) => {
+      if (!isFullPage(result)) throw new TypeError('Not a full page object')
+      return toObject(result)
+    })
+  } catch (error) {
+    if (!(error instanceof Error)) throw error
+    logError('query(): Failed to query database', error)
+    return []
+  }
 }
 
 async function fetchItems(databaseId: string, since: Date | null) {
