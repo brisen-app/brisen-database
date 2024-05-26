@@ -1,6 +1,6 @@
 // Docs: https://supabase.com/docs/reference/javascript/introduction
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
-import { NotionItem } from './models.ts'
+import { NotionItem } from './notion-api.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 if (!SUPABASE_URL) throw new Error('SUPABASE_URL is required!')
@@ -10,7 +10,7 @@ if (!SUPABASE_SECRET) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required!')
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET)
 
-export async function pushItem(table: string, item: Partial<NotionItem>) {
+export async function pushItem(table: string, item: NotionItem) {
   item.sync_status = undefined
   const response = await supabase.from(table).insert(item)
 
@@ -25,7 +25,7 @@ export async function pushItem(table: string, item: Partial<NotionItem>) {
   return { data: response.data, status: response.count }
 }
 
-export async function upsertItem(table: string, item: Partial<NotionItem>) {
+export async function upsertItem(table: string, item: NotionItem) {
   item.sync_status = undefined
   const response = await supabase.from(table).upsert(item, { ignoreDuplicates: false, onConflict: 'id' }).select()
   if (response.error) {

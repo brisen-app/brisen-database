@@ -38,7 +38,7 @@ enum LogType {
   INFO = 'info',
 }
 
-type NotionItem = {
+export type NotionItem = {
   id: string
   created_at: string
   modified_at: string
