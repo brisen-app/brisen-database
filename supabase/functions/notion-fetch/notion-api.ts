@@ -6,7 +6,7 @@ import {
 } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
 import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
 import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
-import { NotionIndex, NotionItem, NotionLogItem, Status } from './models.ts'
+import { NotionIndex, NotionItem, Status } from './models.ts'
 
 type Filter = QueryDatabaseParameters['filter']
 type NotionProperty = PageObjectResponse['properties'][string]
@@ -94,6 +94,7 @@ function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParame
 
   for (const key in item) {
     if (key === 'created_at' || key === 'modified_at') continue
+    // @ts-expect-error: This is fine
     properties[key] = createNotionProperty(key, item[key])
   }
 
