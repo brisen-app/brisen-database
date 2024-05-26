@@ -52,6 +52,14 @@ type NotionIndex = {
   enabled: boolean
 }
 
+export type NotionLog = {
+  title: string
+  timestamp: Date
+  duration?: number
+  details?: string
+  type: LogType
+}
+
 async function query(databaseId: string, filter: Filter) {
   const response = await notion.databases.query({
     database_id: databaseId,
@@ -109,8 +117,17 @@ async function pushItem(databaseId: string, item: Record<string, unknown>) {
   } as CreatePageBodyParameters)
 }
 
-async function log(item: Record<string, unknown>) {
+async function log(item: NotionLog) {
   return await pushItem(LOGS_ID, item)
+}
+
+async function logError(message: string, error?: Error) {
+  return await log({
+    title: message,
+    timestamp: new Date(),
+    type: LogType.ERROR,
+    details: error?.stack,
+  })
 }
 
 function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParameters['properties'] {
@@ -219,6 +236,7 @@ const Notion = {
   fetchItems,
   fetchDatabaseIndex,
   log,
+  logError,
 }
 
 export default Notion

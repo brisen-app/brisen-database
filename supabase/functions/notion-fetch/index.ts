@@ -2,8 +2,8 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-import Notion from './notion-api.ts'
-import { pushItem } from './supabase-api.ts'
+import Notion, { NotionLog } from './notion-api.ts'
+import Supabase from './supabase-api.ts'
 
 // TODO: Setup cron https://youtu.be/-U6DJcjVvGo?si=NLUtt5fftG65RcwF
 
@@ -14,10 +14,9 @@ Deno.serve(async () => {
       'Content-Type': 'application/json',
     },
   }
-  const logResponse = {
+  const logResponse: NotionLog = {
     title: 'Sync completed',
     timestamp: new Date(),
-    duration: 0,
     type: Notion.LogType.INFO,
   }
 
@@ -27,16 +26,22 @@ Deno.serve(async () => {
     for (const table of tables) {
       console.log('fetching:', table.name)
       const items = await Notion.fetchItems(table.id)
-      console.log('successully fetched:', items.length, table.name, 'from Notion')
+      console.log('fetched:', items.length, table.name, 'from Notion')
 
       for (const item of items) {
-        await pushItem(table.name, item)
+        try {
+          await Supabase.pushItem(table.name, item)
+        } catch (error) {
+          if (!(error instanceof Error)) continue
+          console.warn(error.message)
+          Notion.logError(`Performing '${item.sync_status}' on '${item.id}' failed`, error)
+        }
       }
     }
   } catch (error) {
     console.error(error)
     responseInit.status = 500
-    logResponse.title = `Sync failed: ${error.message}`
+    logResponse.title = `Internal Sever Error: ${error.message}`
     logResponse.type = Notion.LogType.ERROR
   }
 
