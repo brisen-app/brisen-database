@@ -11,7 +11,7 @@ if (!SUPABASE_SECRET) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required!')
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET)
 
 async function pushItem(table: string, item: NotionItem) {
-  const response = await supabase.from(table).insert({ ...item, sync_status: undefined })
+  const response = await supabase.from(table).insert({ ...item, sync_action: undefined })
 
   if (response.status === 409) return upsertItem(table, item)
 
@@ -27,7 +27,7 @@ async function pushItem(table: string, item: NotionItem) {
 async function upsertItem(table: string, item: NotionItem) {
   const response = await supabase
     .from(table)
-    .upsert({ ...item, sync_status: undefined }, { ignoreDuplicates: false, onConflict: 'id' })
+    .upsert({ ...item, sync_action: undefined }, { ignoreDuplicates: false, onConflict: 'id' })
     .select()
   if (response.error) {
     throw new Error(

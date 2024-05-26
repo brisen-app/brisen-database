@@ -31,11 +31,12 @@ Deno.serve(async () => {
 
       for (const item of items) {
         try {
-          switch (item.sync_status) {
-            case Notion.SyncStatus.CREATE:
+          switch (item.sync_action) {
+            case Notion.SyncAction.PUBLISH:
               await Supabase.pushItem(table.name, item)
+
               break
-            case Notion.SyncStatus.DELETE:
+            case Notion.SyncAction.UNPUBLISH:
               await Supabase.deleteItem(table.name, item)
               break
             default:
@@ -43,7 +44,7 @@ Deno.serve(async () => {
         } catch (error) {
           if (!(error instanceof Error)) throw error
           console.warn(error.message)
-          Notion.logError(`Performing '${item.sync_status}' on '${item.id}' failed`, error)
+          Notion.logError(`Performing '${item.sync_action}' on '${item.id}' failed`, error)
         }
       }
     }

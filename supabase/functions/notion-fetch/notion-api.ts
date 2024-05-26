@@ -13,22 +13,17 @@ type CreateNotionProperty = CreatePageBodyParameters['properties']
 const INDEX_ID = 'debb1582f2f641f29a1eaec1a455943e'
 const LOGS_ID = '3c80214370c14c77b72e32f510dc4120'
 
-const SYNC_STATUS_KEY = 'sync_status'
+const sync_action_KEY = 'sync_action'
 
 const NOTION_SECRET = Deno.env.get('NOTION_SECRET')
 if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 
 const notion = new Client({ auth: NOTION_SECRET })
 
-enum SyncStatus {
-  NOTHING = 'nothing',
-
-  CREATE = 'create',
-  DELETE = 'delete',
-
-  FAILED = 'failed',
-  UNPUBLISHED = 'unpublished',
-  PUBLISHED = 'published',
+enum SyncAction {
+  PUBLISH = 'publish',
+  UNPUBLISH = 'unpublish',
+  WAIT = 'wait',
 }
 
 enum LogType {
@@ -96,21 +91,21 @@ async function fetchItems(databaseId: string, since: Date | null) {
       {
         or: [
           {
-            property: SYNC_STATUS_KEY,
+            property: sync_action_KEY,
             status: {
-              equals: SyncStatus.CREATE,
+              equals: SyncAction.PUBLISH,
             },
           },
           {
-            property: SYNC_STATUS_KEY,
+            property: sync_action_KEY,
             status: {
-              equals: SyncStatus.DELETE,
+              equals: SyncAction.UNPUBLISH,
             },
           },
         ],
       },
     ],
-  })) as (NotionItem & { sync_status: SyncStatus })[]
+  })) as (NotionItem & { sync_action: SyncAction })[]
 }
 
 async function fetchDatabaseIndex() {
@@ -285,7 +280,7 @@ function getValue(property: NotionProperty) {
 }
 
 const Notion = {
-  SyncStatus,
+  SyncAction,
   LogType,
   fetchItems,
   fetchDatabaseIndex,
