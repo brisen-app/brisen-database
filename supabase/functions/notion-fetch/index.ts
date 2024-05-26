@@ -2,47 +2,48 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-import { fetchDatabaseIndex, fetchItems } from './notion-api.ts'
+import { LogStatus, NotionLogItem } from './models.ts'
+import Notion from './notion-api.ts'
 import { pushItem } from './supabase-api.ts'
 
 // TODO: Setup cron https://youtu.be/-U6DJcjVvGo?si=NLUtt5fftG65RcwF
 
 Deno.serve(async () => {
-  try {
-    const startTime = new Date()
-    const tables = await fetchDatabaseIndex()
+  const responseInit: ResponseInit = {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  }
+  const logResponse: NotionLogItem = {
+    title: 'Sync completed',
+    timestamp: new Date(),
+    duration: 0,
+    type: LogStatus.INFO,
+  }
 
-    let itemCount = 0
+  try {
+    const tables = await Notion.fetchDatabaseIndex()
+
     for (const table of tables) {
       console.log('fetching:', table.name)
-      const items = await fetchItems(table.id)
+      const items = await Notion.fetchItems(table.id)
       console.log('successully fetched:', items.length, table.name, 'from Notion')
 
       for (const item of items) {
         await pushItem(table.name, item)
-        itemCount++
       }
     }
-
-    const endTime = new Date()
-    const logItem = {
-      start: startTime,
-      duration: startTime.getTime() - endTime.getTime(),
-      itemCount: itemCount,
-      tableCount: tables.length,
-      tables: tables.map((table) => table.name),
-    }
-
-    return new Response(JSON.stringify(logItem), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
   } catch (error) {
     console.error(error)
-    return new Response(error.message, { status: 500 })
+    responseInit.status = 500
+    logResponse.title = `Sync failed: ${error.message}`
+    logResponse.type = LogStatus.ERROR
   }
+
+  logResponse.duration = Date.now() - logResponse.timestamp.getTime()
+  Notion.log(logResponse)
+  return new Response(JSON.stringify(logResponse), responseInit)
 })
 
 /* To invoke locally:

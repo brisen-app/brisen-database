@@ -1,13 +1,22 @@
 // Docs: https://github.com/cloudydeno/deno-notion_sdk
-import { PageObjectResponse, QueryDatabaseParameters } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
+import {
+  CreatePageBodyParameters,
+  PageObjectResponse,
+  QueryDatabaseParameters,
+} from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
 import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
 import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
-import { NotionIndex, NotionItem, Status } from './models.ts'
+import { NotionIndex, NotionItem, NotionLogItem, Status } from './models.ts'
 
 type Filter = QueryDatabaseParameters['filter']
+type NotionProperty = PageObjectResponse['properties'][string]
+type CreateNotionProperty = CreatePageBodyParameters['properties']
 
 const INDEX_ID = 'debb1582f2f641f29a1eaec1a455943e'
+const LOGS_ID = '3c80214370c14c77b72e32f510dc4120'
+
 const SYNC_STATUS_KEY = 'sync_status'
+
 const NOTION_SECRET = Deno.env.get('NOTION_SECRET')
 if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 
@@ -59,29 +68,75 @@ async function query(databaseId: string, filter: Filter): Promise<Partial<Notion
   })
 }
 
-export async function fetchItems(databaseId: string) {
-  return await query(databaseId, NOTION_STATUS_FILTER)
+async function fetchItems(databaseId: string) {
+  return (await query(databaseId, NOTION_STATUS_FILTER)) as NotionItem[] & {
+    [key: string]: ReturnType<typeof getValue>
+  }
 }
 
-export async function fetchDatabaseIndex() {
+async function fetchDatabaseIndex() {
   return (await query(INDEX_ID, NOTION_INDEX_FILTER)) as NotionIndex[]
 }
 
-function toObject(page: PageObjectResponse): { [key: string]: ReturnType<typeof getValue> } {
-  const object: { [key: string]: ReturnType<typeof getValue> } = {}
-
-  object.id = page.id
-  object.modified_at = page.last_edited_time
-  object.created_at = page.created_time
-  if (page.icon?.type === 'emoji') object.icon = page.icon.emoji
-
-  for (const key in page.properties) {
-    object[key] = getValue(page.properties[key])
-  }
-  return object
+async function pushItem(databaseId: string, item: Record<string, unknown>) {
+  return await notion.pages.create({
+    parent: { database_id: databaseId },
+    properties: toNotionProperties(item),
+  } as CreatePageBodyParameters)
 }
 
-function getValue(property: PageObjectResponse['properties'][string]) {
+async function log(item: Record<string, unknown>) {
+  return await pushItem(LOGS_ID, item)
+}
+
+function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParameters['properties'] {
+  const properties: ReturnType<typeof toNotionProperties> = {}
+
+  for (const key in item) {
+    if (key === 'created_at' || key === 'modified_at') continue
+    properties[key] = createNotionProperty(key, item[key])
+  }
+
+  return properties
+}
+
+function toObject(page: PageObjectResponse): NotionItem & { [key: string]: ReturnType<typeof getValue> } {
+  const item: ReturnType<typeof toObject> = {
+    id: page.id,
+    sync_status: Status.NOTHING,
+    modified_at: page.last_edited_time,
+    created_at: page.created_time,
+  }
+
+  if (page.icon?.type === 'emoji') item.icon = page.icon.emoji
+
+  for (const key in page.properties) {
+    item[key] = getValue(page.properties[key])
+  }
+  return item
+}
+
+function createNotionProperty<T>(key: string, value: T): CreateNotionProperty[keyof CreateNotionProperty] {
+  if (key === 'name' || key == 'title') return { title: [{ text: { content: value as string } }] }
+  if (key === 'type') return { select: { name: value as string } }
+
+  switch (typeof value) {
+    case 'string':
+      return { rich_text: [{ text: { content: value } }] }
+    case 'number':
+      return { number: value }
+    case 'boolean':
+      return { checkbox: value }
+    case 'object':
+      if (Array.isArray(value)) return { multi_select: value.map((option) => ({ name: option as string })) }
+      if (value instanceof Date) return { date: { start: value.toISOString() } }
+      break
+    default:
+  }
+  throw new TypeError(`Unsupported value type of key ${key}: ${typeof value}`)
+}
+
+function getValue(property: NotionProperty) {
   switch (property.type) {
     case 'title':
       if (property.title.length === 0) return undefined
@@ -133,3 +188,11 @@ function getValue(property: PageObjectResponse['properties'][string]) {
       throw new TypeError('Unknown property type: ' + property['type'])
   }
 }
+
+const Notion = {
+  fetchItems,
+  fetchDatabaseIndex,
+  log,
+}
+
+export default Notion
