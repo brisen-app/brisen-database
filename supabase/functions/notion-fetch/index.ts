@@ -44,6 +44,7 @@ Deno.serve(async () => {
     responseInit.status = 500
     logResponse.title = `Internal Sever Error: ${error.message}`
     logResponse.type = Notion.LogType.ERROR
+    logResponse.details = error.stack
   }
 
   logResponse.duration = Date.now() - logResponse.timestamp.getTime()

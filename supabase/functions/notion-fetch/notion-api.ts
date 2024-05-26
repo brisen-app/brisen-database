@@ -7,7 +7,6 @@ import {
 import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
 import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
 
-type Filter = QueryDatabaseParameters['filter']
 type NotionProperty = PageObjectResponse['properties'][string]
 type CreateNotionProperty = CreatePageBodyParameters['properties']
 
@@ -60,20 +59,27 @@ export type NotionLog = {
   type: LogType
 }
 
-async function query(databaseId: string, filter: Filter) {
+async function query(
+  databaseId: string,
+  filter: QueryDatabaseParameters['filter'],
+  sorts: QueryDatabaseParameters['sorts'] = undefined,
+  page_size = 100
+) {
   try {
     const response = await notion.databases.query({
       database_id: databaseId,
       filter: filter,
+      sorts: sorts,
+      page_size: page_size,
     })
 
     return response.results.map((result) => {
-      if (!isFullPage(result)) throw new TypeError('Not a full page object')
+      if (!isFullPage(result)) throw new TypeError('Not a full page object: ' + result.id)
       return toObject(result)
     })
   } catch (error) {
     if (!(error instanceof Error)) throw error
-    logError('query(): Failed to query database', error)
+    logError(`query(): Failed to query database '${databaseId}'`, error)
     return []
   }
 }
@@ -147,9 +153,9 @@ async function logError(message: string, error?: Error) {
 }
 
 async function fetchLastSyncDate() {
-  const response = await notion.databases.query({
-    database_id: LOGS_ID,
-    filter: {
+  const results = (await query(
+    LOGS_ID,
+    {
       and: [
         {
           property: 'type',
@@ -165,21 +171,17 @@ async function fetchLastSyncDate() {
         },
       ],
     },
-    sorts: [
+    [
       {
         property: 'timestamp',
         direction: 'descending',
       },
     ],
-    page_size: 1,
-  })
+    1
+  )) as unknown as NotionLog[]
 
-  if (response.results.length === 0) return null
-  if (!isFullPage(response.results[0])) throw new TypeError('getLastSuccessfulSyncDate(): Not a full page object')
-  const timestamp = getValue(response.results[0].properties.timestamp) as string | undefined
-  if (!timestamp) throw new TypeError('getLastSuccessfulSyncDate(): timestamp property is empty')
-
-  return new Date(timestamp)
+  if (results.length === 0) return null
+  return new Date(results[0].timestamp)
 }
 
 function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParameters['properties'] {
