@@ -72,20 +72,30 @@ async function query(databaseId: string, filter: Filter) {
   })
 }
 
-async function fetchItems(databaseId: string) {
+async function fetchItems(databaseId: string, since: Date | null) {
   return (await query(databaseId, {
-    or: [
+    and: [
       {
-        property: SYNC_STATUS_KEY,
-        status: {
-          equals: Status.CREATE,
+        property: 'modified_at',
+        date: {
+          after: since?.toISOString() ?? '1970-01-01T00:00:00.000Z',
         },
       },
       {
-        property: SYNC_STATUS_KEY,
-        status: {
-          equals: Status.DELETE,
-        },
+        or: [
+          {
+            property: SYNC_STATUS_KEY,
+            status: {
+              equals: Status.CREATE,
+            },
+          },
+          {
+            property: SYNC_STATUS_KEY,
+            status: {
+              equals: Status.DELETE,
+            },
+          },
+        ],
       },
     ],
   })) as (NotionItem & { sync_status: Status })[]
@@ -128,6 +138,42 @@ async function logError(message: string, error?: Error) {
     type: LogType.ERROR,
     details: error?.stack,
   })
+}
+
+async function fetchLastSyncDate() {
+  const response = await notion.databases.query({
+    database_id: LOGS_ID,
+    filter: {
+      and: [
+        {
+          property: 'type',
+          select: {
+            equals: LogType.INFO,
+          },
+        },
+        {
+          property: 'duration',
+          number: {
+            is_not_empty: true,
+          },
+        },
+      ],
+    },
+    sorts: [
+      {
+        property: 'timestamp',
+        direction: 'descending',
+      },
+    ],
+    page_size: 1,
+  })
+
+  if (response.results.length === 0) return null
+  if (!isFullPage(response.results[0])) throw new TypeError('getLastSuccessfulSyncDate(): Not a full page object')
+  const timestamp = getValue(response.results[0].properties.timestamp) as string | undefined
+  if (!timestamp) throw new TypeError('getLastSuccessfulSyncDate(): timestamp property is empty')
+
+  return new Date(timestamp)
 }
 
 function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParameters['properties'] {
@@ -235,6 +281,7 @@ const Notion = {
   LogType,
   fetchItems,
   fetchDatabaseIndex,
+  fetchLastSyncDate,
   log,
   logError,
 }

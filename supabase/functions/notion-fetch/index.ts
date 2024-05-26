@@ -22,10 +22,11 @@ Deno.serve(async () => {
 
   try {
     const tables = await Notion.fetchDatabaseIndex()
+    const lastSync = await Notion.fetchLastSyncDate()
 
     for (const table of tables) {
-      console.log('fetching:', table.name)
-      const items = await Notion.fetchItems(table.id)
+      console.log(`fetching ${table.name} edited since ${lastSync}`)
+      const items = await Notion.fetchItems(table.id, lastSync)
       console.log('fetched:', items.length, table.name, 'from Notion')
 
       for (const item of items) {
