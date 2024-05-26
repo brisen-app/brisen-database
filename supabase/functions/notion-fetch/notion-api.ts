@@ -10,10 +10,10 @@ import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
 type NotionProperty = PageObjectResponse['properties'][string]
 type CreateNotionProperty = CreatePageBodyParameters['properties']
 
-const INDEX_ID = 'debb1582f2f641f29a1eaec1a455943e'
-const LOGS_ID = '3c80214370c14c77b72e32f510dc4120'
+const INDEX = { id: 'debb1582f2f641f29a1eaec1a455943e', name: 'index', enabled: true }
+const LOGS = { id: '3c80214370c14c77b72e32f510dc4120', name: 'logs', enabled: true }
 
-const sync_action_KEY = 'sync_action'
+const SYNC_ACTION_KEY = 'sync_action'
 
 const NOTION_SECRET = Deno.env.get('NOTION_SECRET')
 if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
@@ -34,10 +34,11 @@ enum LogType {
 
 export type NotionItem = {
   id: string
+  parent: NotionIndex
   created_at: string
   modified_at: string
 } & {
-  [key: string]: ReturnType<typeof getValue>
+  [key: string]: unknown
 }
 
 type NotionIndex = {
@@ -55,32 +56,34 @@ export type NotionLog = {
 }
 
 async function query(
-  databaseId: string,
+  databaseIndex: NotionIndex,
   filter: QueryDatabaseParameters['filter'],
   sorts: QueryDatabaseParameters['sorts'] = undefined,
-  page_size = 100
+  page_size = 1000
 ) {
   try {
     const response = await notion.databases.query({
-      database_id: databaseId,
+      database_id: databaseIndex.id,
       filter: filter,
       sorts: sorts,
       page_size: page_size,
     })
 
-    return response.results.map((result) => {
-      if (!isFullPage(result)) throw new TypeError('Not a full page object: ' + result.id)
-      return toObject(result)
-    })
+    return Promise.all(
+      response.results.map((result) => {
+        if (!isFullPage(result)) throw new TypeError('Not a full page object: ' + result.id)
+        return toObject(result, databaseIndex)
+      })
+    )
   } catch (error) {
     if (!(error instanceof Error)) throw error
-    logError(`query(): Failed to query database '${databaseId}'`, error)
+    logError(`query(): Failed to query database '${databaseIndex.name}'`, error)
     return []
   }
 }
 
-async function fetchItems(databaseId: string, since: Date | null) {
-  return (await query(databaseId, {
+async function fetchItems(databaseIndex: NotionIndex, since: Date | null) {
+  return (await query(databaseIndex, {
     and: [
       {
         property: 'modified_at',
@@ -91,13 +94,13 @@ async function fetchItems(databaseId: string, since: Date | null) {
       {
         or: [
           {
-            property: sync_action_KEY,
+            property: SYNC_ACTION_KEY,
             status: {
               equals: SyncAction.PUBLISH,
             },
           },
           {
-            property: sync_action_KEY,
+            property: SYNC_ACTION_KEY,
             status: {
               equals: SyncAction.UNPUBLISH,
             },
@@ -108,8 +111,14 @@ async function fetchItems(databaseId: string, since: Date | null) {
   })) as (NotionItem & { sync_action: SyncAction })[]
 }
 
+async function fetchPage(id: string, parent: NotionIndex): Promise<NotionItem> {
+  const response = await notion.pages.retrieve({ page_id: id })
+  if (!isFullPage(response)) throw new TypeError('Not a full page object: ' + response.id)
+  return await toObject(response, parent)
+}
+
 async function fetchDatabaseIndex() {
-  return (await query(INDEX_ID, {
+  return (await query(INDEX, {
     and: [
       {
         property: 'enabled',
@@ -135,7 +144,7 @@ async function pushItem(databaseId: string, item: Record<string, unknown>) {
 }
 
 async function log(item: NotionLog) {
-  return await pushItem(LOGS_ID, item)
+  return await pushItem(LOGS.id, item)
 }
 
 async function logError(message: string, error?: Error) {
@@ -149,7 +158,7 @@ async function logError(message: string, error?: Error) {
 
 async function fetchLastSyncDate() {
   const results = (await query(
-    LOGS_ID,
+    LOGS,
     {
       and: [
         {
@@ -191,9 +200,10 @@ function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParame
   return properties
 }
 
-function toObject(page: PageObjectResponse): NotionItem {
-  const item: ReturnType<typeof toObject> = {
+async function toObject(page: PageObjectResponse, parent: NotionIndex): Promise<NotionItem> {
+  const item: NotionItem = {
     id: page.id,
+    parent: parent,
     modified_at: page.last_edited_time,
     created_at: page.created_time,
   }
@@ -201,7 +211,7 @@ function toObject(page: PageObjectResponse): NotionItem {
   if (page.icon?.type === 'emoji') item.icon = page.icon.emoji.toString()
 
   for (const key in page.properties) {
-    item[key] = getValue(page.properties[key])
+    item[key] = await getValue(page.properties[key], parent)
   }
   return item
 }
@@ -226,7 +236,7 @@ function createNotionProperty<T>(key: string, value: T): CreateNotionProperty[ke
   throw new TypeError(`Unsupported value type of key ${key}: ${typeof value}`)
 }
 
-function getValue(property: NotionProperty) {
+async function getValue(property: NotionProperty, parent: NotionIndex) {
   switch (property.type) {
     case 'title':
       if (property.title.length === 0) return undefined
@@ -258,8 +268,11 @@ function getValue(property: NotionProperty) {
       return property.phone_number
     case 'formula':
       return property.formula
-    case 'relation':
-      return property.relation.map((relation) => relation.id)
+    case 'relation': {
+      if (property.relation.length === 0) return []
+      if (property.relation.length !== 1) throw Error('Unsupported relation length')
+      return await fetchPage(property.relation[0].id, parent)
+    }
     case 'rollup':
       return property.rollup
     case 'created_time':

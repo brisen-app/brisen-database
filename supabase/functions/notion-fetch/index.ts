@@ -23,18 +23,18 @@ Deno.serve(async () => {
   try {
     const tables = await Notion.fetchDatabaseIndex()
     const lastSync = await Notion.fetchLastSyncDate()
+    console.log('Last sync:', lastSync)
 
     for (const table of tables) {
-      console.log(`fetching ${table.name} edited since ${lastSync}`)
-      const items = await Notion.fetchItems(table.id, lastSync)
-      console.log('fetched:', items.length, table.name, 'from Notion')
+      console.log('fetching', table.name)
+      const items = await Notion.fetchItems(table, lastSync)
+      console.log('fetched', items.length, table.name)
 
       for (const item of items) {
         try {
           switch (item.sync_action) {
             case Notion.SyncAction.PUBLISH:
               await Supabase.pushItem(table.name, item)
-
               break
             case Notion.SyncAction.UNPUBLISH:
               await Supabase.deleteItem(table.name, item)
