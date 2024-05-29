@@ -37,7 +37,7 @@ Deno.serve(async () => {
         try {
           if (isNotionCardItem(item)) relations.push(...extractCardRelations(item))
 
-          switch (item.sync_action) {
+          switch (item._sync_action) {
             case SyncAction.PUBLISH:
               await Supabase.pushItem(table.name, item)
               break
@@ -85,7 +85,7 @@ Deno.serve(async () => {
 function extractCardRelations(item: NotionCardItem) {
   const relations = []
 
-  for (const parent of item.parents) {
+  for (const parent of item._parents) {
     relations.push({
       parent: parent,
       child: item.id,
@@ -93,7 +93,7 @@ function extractCardRelations(item: NotionCardItem) {
     })
   }
 
-  for (const child of item.children) {
+  for (const child of item._children) {
     relations.push({
       parent: item.id,
       child: child,
