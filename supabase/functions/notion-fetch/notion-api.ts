@@ -1,66 +1,30 @@
 // Docs: https://github.com/cloudydeno/deno-notion_sdk
 import {
   CreatePageBodyParameters,
-  PageObjectResponse,
   QueryDatabaseParameters,
 } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
-import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
 import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
+import { LogType, NotionIndex, NotionLog, SyncAction } from './models.ts'
+import { toNotionItem, toNotionProperties } from './notion-parser.ts'
 
-type NotionProperty = PageObjectResponse['properties'][string]
-type CreateNotionProperty = CreatePageBodyParameters['properties']
+// Database ids
+enum DatabaseIdentifier {
+  INDEX_ID = 'debb1582f2f641f29a1eaec1a455943e',
+  LOGS_ID = '3c80214370c14c77b72e32f510dc4120',
+}
 
-const INDEX_ID = 'debb1582f2f641f29a1eaec1a455943e'
-const LOGS_ID = '3c80214370c14c77b72e32f510dc4120'
-
-const SYNC_ACTION_KEY = 'sync_action'
-
+// Initialize Notion client
 const NOTION_SECRET = Deno.env.get('NOTION_SECRET')
 if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
-
 const notion = new Client({ auth: NOTION_SECRET })
 
-enum SyncAction {
-  PUBLISH = 'publish',
-  UNPUBLISH = 'unpublish',
-  WAIT = 'wait',
-}
-
-enum LogType {
-  ERROR = 'error',
-  WARN = 'warning',
-  INFO = 'info',
-}
-
-export type NotionItem = {
-  id: string
-  created_at: string
-  modified_at: string
-} & {
-  [key: string]: ReturnType<typeof getValue>
-}
-
-type NotionIndex = {
-  id: string
-  name: string
-  enabled: boolean
-}
-
-export type NotionLog = {
-  title: string
-  timestamp: Date
-  duration?: number
-  details?: string
-  type: LogType
-}
-
-async function query(
-  databaseId: string,
-  filter: QueryDatabaseParameters['filter'],
-  sorts: QueryDatabaseParameters['sorts'] = undefined,
-  page_size = 100
-) {
-  try {
+export default class NotionAPI {
+  private static async query(
+    databaseId: string,
+    filter: QueryDatabaseParameters['filter'] = undefined,
+    sorts: QueryDatabaseParameters['sorts'] = undefined,
+    page_size = 100
+  ) {
     const response = await notion.databases.query({
       database_id: databaseId,
       filter: filter,
@@ -68,225 +32,117 @@ async function query(
       page_size: page_size,
     })
 
-    return response.results.map((result) => {
-      if (!isFullPage(result)) throw new TypeError('Not a full page object: ' + result.id)
-      return toObject(result)
-    })
-  } catch (error) {
-    if (!(error instanceof Error)) throw error
-    logError(`query(): Failed to query database '${databaseId}'`, error)
-    return []
+    return response.results.map((result) => toNotionItem(result))
   }
-}
 
-async function fetchItems(databaseId: string, since: Date | null) {
-  return (await query(databaseId, {
-    and: [
-      {
-        property: 'modified_at',
-        date: {
-          after: since?.toISOString() ?? '1970-01-01T00:00:00.000Z',
-        },
-      },
-      {
-        or: [
-          {
-            property: SYNC_ACTION_KEY,
-            status: {
-              equals: SyncAction.PUBLISH,
-            },
-          },
-          {
-            property: SYNC_ACTION_KEY,
-            status: {
-              equals: SyncAction.UNPUBLISH,
-            },
-          },
-        ],
-      },
-    ],
-  })) as (NotionItem & { sync_action: SyncAction })[]
-}
-
-async function fetchDatabaseIndex() {
-  return (await query(INDEX_ID, {
-    and: [
-      {
-        property: 'enabled',
-        checkbox: {
-          equals: true,
-        },
-      },
-      {
-        property: 'id',
-        rich_text: {
-          is_not_empty: true,
-        },
-      },
-    ],
-  })) as unknown as NotionIndex[]
-}
-
-async function pushItem(databaseId: string, item: Record<string, unknown>) {
-  return await notion.pages.create({
-    parent: { database_id: databaseId },
-    properties: toNotionProperties(item),
-  } as CreatePageBodyParameters)
-}
-
-async function log(item: NotionLog) {
-  return await pushItem(LOGS_ID, item)
-}
-
-async function logError(message: string, error?: Error) {
-  return await log({
-    title: message,
-    timestamp: new Date(),
-    type: LogType.ERROR,
-    details: error?.stack,
-  })
-}
-
-async function fetchLastSyncDate() {
-  const results = (await query(
-    LOGS_ID,
-    {
+  static async fetchItems(databaseId: string, since: Date | null) {
+    return await NotionAPI.query(databaseId, {
       and: [
         {
-          property: 'type',
-          select: {
-            equals: LogType.INFO,
+          property: 'modified_at',
+          date: {
+            after: since?.toISOString() ?? '1970-01-01T00:00:00.000Z',
           },
         },
         {
-          property: 'duration',
-          number: {
+          or: [
+            {
+              property: '_sync_action',
+              status: {
+                equals: SyncAction.PUBLISH,
+              },
+            },
+            {
+              property: '_sync_action',
+              status: {
+                equals: SyncAction.UNPUBLISH,
+              },
+            },
+          ],
+        },
+      ],
+    })
+  }
+
+  static async fetchDatabaseIndex() {
+    return (await NotionAPI.query(DatabaseIdentifier.INDEX_ID, {
+      and: [
+        {
+          property: 'enabled',
+          checkbox: {
+            equals: true,
+          },
+        },
+        {
+          property: 'id',
+          rich_text: {
             is_not_empty: true,
           },
         },
       ],
-    },
-    [
+    })) as unknown as NotionIndex[]
+  }
+
+  static async fetchLastSyncDate() {
+    const results = (await NotionAPI.query(
+      DatabaseIdentifier.LOGS_ID,
       {
-        property: 'timestamp',
-        direction: 'descending',
+        and: [
+          {
+            property: 'type',
+            select: {
+              equals: LogType.INFO,
+            },
+          },
+          {
+            property: 'duration',
+            number: {
+              is_not_empty: true,
+            },
+          },
+        ],
       },
-    ],
-    1
-  )) as unknown as NotionLog[]
+      [
+        {
+          property: 'timestamp',
+          direction: 'descending',
+        },
+      ],
+      1
+    )) as unknown as NotionLog[]
 
-  if (results.length === 0) return null
-  return new Date(results[0].timestamp)
-}
-
-function toNotionProperties(item: Record<string, unknown>): CreatePageBodyParameters['properties'] {
-  const properties: ReturnType<typeof toNotionProperties> = {}
-
-  for (const key in item) {
-    if (key === 'created_at' || key === 'modified_at') continue
-    // @ts-expect-error: This is fine
-    properties[key] = createNotionProperty(key, item[key])
+    if (results.length === 0) return null
+    const lastSync = new Date(results[0].timestamp)
+    console.log('Last sync:', lastSync)
+    return lastSync
   }
 
-  return properties
-}
-
-function toObject(page: PageObjectResponse): NotionItem {
-  const item: ReturnType<typeof toObject> = {
-    id: page.id,
-    modified_at: page.last_edited_time,
-    created_at: page.created_time,
+  static async pushItem(databaseId: string, item: object) {
+    return await notion.pages.create({
+      parent: { database_id: databaseId },
+      properties: toNotionProperties(item),
+    } as CreatePageBodyParameters)
   }
 
-  if (page.icon?.type === 'emoji') item.icon = page.icon.emoji.toString()
-
-  for (const key in page.properties) {
-    item[key] = getValue(page.properties[key])
+  static async log(item: NotionLog) {
+    return await NotionAPI.pushItem(DatabaseIdentifier.LOGS_ID, item)
   }
-  return item
-}
 
-function createNotionProperty<T>(key: string, value: T): CreateNotionProperty[keyof CreateNotionProperty] {
-  if (key === 'name' || key == 'title') return { title: [{ text: { content: value as string } }] }
-  if (key === 'type') return { select: { name: value as string } }
-
-  switch (typeof value) {
-    case 'string':
-      return { rich_text: [{ text: { content: value } }] }
-    case 'number':
-      return { number: value }
-    case 'boolean':
-      return { checkbox: value }
-    case 'object':
-      if (Array.isArray(value)) return { multi_select: value.map((option) => ({ name: option as string })) }
-      if (value instanceof Date) return { date: { start: value.toISOString() } }
-      break
-    default:
+  static async logError(message: string, error?: Error) {
+    return await NotionAPI.log({
+      title: message,
+      timestamp: new Date(),
+      type: LogType.ERROR,
+      details: error?.stack,
+    })
   }
-  throw new TypeError(`Unsupported value type of key ${key}: ${typeof value}`)
-}
 
-function getValue(property: NotionProperty) {
-  switch (property.type) {
-    case 'title':
-      if (property.title.length === 0) return undefined
-      return property.title[0].plain_text
-    case 'rich_text':
-      if (property.rich_text.length === 0) return undefined
-      return property.rich_text[0].plain_text
-    case 'number':
-      return property.number
-    case 'select':
-      return property.select
-    case 'status':
-      return property.status?.name
-    case 'multi_select':
-      return property.multi_select.map((option) => option.name)
-    case 'date':
-      return property.date?.start
-    case 'people':
-      return property.people
-    case 'files':
-      return property.files
-    case 'checkbox':
-      return property.checkbox
-    case 'url':
-      return property.url
-    case 'email':
-      return property.email
-    case 'phone_number':
-      return property.phone_number
-    case 'formula':
-      return property.formula
-    case 'relation':
-      return property.relation.map((relation) => relation.id)
-    case 'rollup':
-      return property.rollup
-    case 'created_time':
-      return property.created_time
-    case 'created_by':
-      if (isFullUser(property.created_by)) return property.created_by.name
-      return property.created_by
-    case 'last_edited_time':
-      return property.last_edited_time
-    case 'last_edited_by':
-      if (isFullUser(property.last_edited_by)) {
-        return property.last_edited_by.name
-      }
-      return property.last_edited_by
-    default:
-      throw new TypeError('Unknown property type: ' + property['type'])
+  static async logWarning(message: string, error?: Error) {
+    return await NotionAPI.log({
+      title: message,
+      timestamp: new Date(),
+      type: LogType.WARN,
+      details: error?.stack,
+    })
   }
 }
-
-const Notion = {
-  SyncAction,
-  LogType,
-  fetchItems,
-  fetchDatabaseIndex,
-  fetchLastSyncDate,
-  log,
-  logError,
-}
-
-export default Notion
