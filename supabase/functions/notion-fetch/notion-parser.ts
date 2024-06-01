@@ -31,10 +31,10 @@ export function toNotionProperties(item: object): CreateNotionProperty {
   return properties
 }
 
-export function toNotionItem(page: PageObjectResponse | PartialPageObjectResponse): NotionItem {
+export function toNotionItem(page: PageObjectResponse | PartialPageObjectResponse) {
   if (!isFullPage(page)) throw new TypeError('Not a full page object: ' + page.id)
 
-  const item: ReturnType<typeof toNotionItem> = {
+  const item: NotionItem = {
     id: page.id,
     modified_at: page.last_edited_time,
     created_at: page.created_time,

@@ -80,7 +80,7 @@ export default class NotionAPI {
           },
         },
       ],
-    })) as unknown as NotionIndex[]
+    })) as object[] as NotionIndex[]
   }
 
   static async fetchLastSyncDate() {
@@ -109,7 +109,7 @@ export default class NotionAPI {
         },
       ],
       1
-    )) as unknown as NotionLog[]
+    )) as object[] as NotionLog[]
 
     if (results.length === 0) return null
     const lastSync = new Date(results[0].timestamp)
