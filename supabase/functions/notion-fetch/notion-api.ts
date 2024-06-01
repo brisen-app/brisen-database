@@ -5,7 +5,7 @@ import {
 } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
 import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
 import { LogType, NotionIndex, NotionLog, SyncAction } from './models.ts'
-import { toNotionItem, toNotionProperties } from './notion-parser.ts'
+import { NotionItem, toNotionItem, toNotionProperties } from './notion-parser.ts'
 
 // Database ids
 enum DatabaseIdentifier {
@@ -25,14 +25,22 @@ export default class NotionAPI {
     sorts: QueryDatabaseParameters['sorts'] = undefined,
     page_size = 100
   ) {
-    const response = await notion.databases.query({
-      database_id: databaseId,
-      filter: filter,
-      sorts: sorts,
-      page_size: page_size,
-    })
+    const results: NotionItem[] = []
+    let cursor: string | null | undefined = undefined
 
-    return response.results.map((result) => toNotionItem(result))
+    while (cursor !== null) {
+      const response = await notion.databases.query({
+        database_id: databaseId,
+        filter: filter,
+        sorts: sorts,
+        page_size: page_size,
+        start_cursor: cursor,
+      })
+      results.push(...response.results.map(toNotionItem))
+      cursor = response.next_cursor
+    }
+
+    return results
   }
 
   static async fetchItems(databaseId: string, since: Date | null) {
