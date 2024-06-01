@@ -23,7 +23,6 @@ export function isCardPackRelation(relation: object): relation is CardPackRelati
 }
 
 export function extractRelations(item: NotionItem) {
-  if (item._sync_action !== SyncAction.PUBLISH) return []
   if (isNotionCardItem(item)) return extractCardRelations(item)
   if (isNotionPackItem(item)) return extractPackRelations(item)
   return []

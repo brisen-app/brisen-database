@@ -29,18 +29,17 @@ Deno.serve(async () => {
     const tables = await NotionAPI.fetchDatabaseIndex()
     const lastSync = await NotionAPI.fetchLastSyncDate()
 
+    // Handle items
     for (const table of tables) {
       console.log('fetching', table.name)
       const items = await NotionAPI.fetchItems(table.id, lastSync)
       console.log('fetched', items.length, table.name)
 
-      // Handle items
       for (const item of items) {
         try {
-          relations.concat(extractRelations(item))
-
           switch (item._sync_action) {
             case SyncAction.PUBLISH:
+              relations.push(...extractRelations(item))
               await Supabase.pushItem(table.name, item)
               break
             case SyncAction.UNPUBLISH:
@@ -54,19 +53,19 @@ Deno.serve(async () => {
           NotionAPI.logError(`Performing '${item._sync_action}' on '${item.id}' failed`, error, item)
         }
       }
+    }
 
-      // Handle relations
-      for (const relation of relations) {
-        try {
-          const table = getRelationTable(relation)
-          if (!table) continue
+    // Handle relations
+    for (const relation of relations) {
+      try {
+        const table = getRelationTable(relation)
+        if (!table) continue
 
-          await Supabase.pushItem(table, relation)
-        } catch (error) {
-          if (!(error instanceof Error)) throw error
-          console.warn(error.message)
-          NotionAPI.logWarning(`Pushing relation failed`, error, relation)
-        }
+        await Supabase.pushItem(table, relation)
+      } catch (error) {
+        if (!(error instanceof Error)) throw error
+        console.warn(error.message)
+        NotionAPI.logWarning(`Pushing relation failed`, error, relation)
       }
     }
   } catch (error) {
