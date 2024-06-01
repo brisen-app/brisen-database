@@ -2,7 +2,15 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-import { LogType, NotionCardItem, NotionLog, SyncAction, isNotionCardItem } from './models.ts'
+import {
+  CardDependency,
+  LogType,
+  NotionCardItem,
+  NotionLog,
+  SyncAction,
+  isCardDependency,
+  isNotionCardItem,
+} from './models.ts'
 import NotionAPI from './notion-api.ts'
 import Supabase from './supabase-api.ts'
 
@@ -49,23 +57,24 @@ Deno.serve(async () => {
         } catch (error) {
           if (!(error instanceof Error)) throw error
           console.warn(error.message)
-          NotionAPI.logError(`Performing '${item.sync_action}' on '${item.id}' failed`, error)
+          NotionAPI.logError(`Performing '${item._sync_action}' on '${item.id}' failed`, error, item)
         }
       }
 
       // Handle relations
       for (const relation of relations) {
         let table = null
-        if (relation.child !== null) table = 'card_dependencies'
+        if (isCardDependency(relation)) table = 'card_dependencies'
         if (table === null) continue
 
         try {
-          if (relation.sync_action !== SyncAction.PUBLISH) continue
+          if (relation._sync_action !== SyncAction.PUBLISH) continue
           await Supabase.pushItem(table, relation)
         } catch (error) {
           if (!(error instanceof Error)) throw error
           console.warn(error.message)
-          NotionAPI.logWarning(`Pushing relation '${relation.child}' failed`, error)
+          NotionAPI.logWarning(`Pushing relation '${relation.parent} -> ${relation.child}' failed`, error, relation)
+          throw error
         }
       }
     }
@@ -83,13 +92,13 @@ Deno.serve(async () => {
 })
 
 function extractCardRelations(item: NotionCardItem) {
-  const relations = []
+  const relations: CardDependency[] = []
 
   for (const parent of item._parents) {
     relations.push({
       parent: parent,
       child: item.id,
-      sync_action: item.sync_action,
+      _sync_action: item._sync_action,
     })
   }
 
@@ -97,7 +106,7 @@ function extractCardRelations(item: NotionCardItem) {
     relations.push({
       parent: item.id,
       child: child,
-      sync_action: item.sync_action,
+      _sync_action: item._sync_action,
     })
   }
 

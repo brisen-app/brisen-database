@@ -19,7 +19,7 @@ export type NotionCardItem = NotionItem & {
 }
 
 export function isNotionCardItem(item: object): item is NotionCardItem {
-  return 'parents' in item && 'children' in item && isNotionItem(item)
+  return '_parents' in item && '_children' in item && isNotionItem(item)
 }
 
 export type CardDependency = {
@@ -57,5 +57,6 @@ export type NotionLog = {
   timestamp: Date
   duration?: number
   details?: string
+  entity?: string
   type: LogType
 }

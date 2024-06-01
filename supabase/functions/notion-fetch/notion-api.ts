@@ -128,21 +128,23 @@ export default class NotionAPI {
     return await NotionAPI.pushItem(DatabaseIdentifier.LOGS_ID, item)
   }
 
-  static async logError(message: string, error?: Error) {
+  static async logError(message: string, error?: Error, entity?: object) {
     return await NotionAPI.log({
       title: message,
       timestamp: new Date(),
       type: LogType.ERROR,
       details: error?.stack,
+      entity: JSON.stringify(entity, null, 2),
     })
   }
 
-  static async logWarning(message: string, error?: Error) {
+  static async logWarning(message: string, error?: Error, entity?: object) {
     return await NotionAPI.log({
       title: message,
       timestamp: new Date(),
       type: LogType.WARN,
       details: error?.stack,
+      entity: JSON.stringify(entity, null, 2),
     })
   }
 }
