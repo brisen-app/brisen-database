@@ -49,4 +49,5 @@ export type NotionLog = {
   details?: string
   entity?: string
   type: LogType
+  exact_time: number
 }

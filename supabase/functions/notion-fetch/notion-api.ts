@@ -94,17 +94,11 @@ export default class NotionAPI {
               equals: LogType.INFO,
             },
           },
-          {
-            property: 'duration',
-            number: {
-              is_not_empty: true,
-            },
-          },
         ],
       },
       [
         {
-          property: 'timestamp',
+          property: 'exact_time',
           direction: 'descending',
         },
       ],
@@ -112,7 +106,7 @@ export default class NotionAPI {
     )) as object[] as NotionLog[]
 
     if (results.length === 0) return null
-    const lastSync = new Date(results[0].timestamp)
+    const lastSync = new Date(results[0].exact_time)
     console.log('Last sync:', lastSync)
     return lastSync
   }
@@ -132,6 +126,7 @@ export default class NotionAPI {
     return await NotionAPI.log({
       title: message,
       timestamp: new Date(),
+      exact_time: Date.now(),
       type: LogType.ERROR,
       details: error?.stack,
       entity: JSON.stringify(entity, null, 2),
@@ -142,6 +137,7 @@ export default class NotionAPI {
     return await NotionAPI.log({
       title: message,
       timestamp: new Date(),
+      exact_time: Date.now(),
       type: LogType.WARN,
       details: error?.stack,
       entity: JSON.stringify(entity, null, 2),

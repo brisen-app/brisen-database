@@ -21,6 +21,7 @@ Deno.serve(async () => {
   const logResponse: NotionLog = {
     title: 'Sync completed',
     timestamp: new Date(),
+    exact_time: Date.now(),
     type: LogType.INFO,
   }
 
