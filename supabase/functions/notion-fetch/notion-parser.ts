@@ -45,7 +45,7 @@ export function toNotionItem(page: PageObjectResponse | PartialPageObjectRespons
   for (const key in page.properties) {
     item[key] = getValue(key, page.properties[key])
   }
-  console.log('parsed:', item)
+  console.debug('toNotionItem():', item)
   return item
 }
 
