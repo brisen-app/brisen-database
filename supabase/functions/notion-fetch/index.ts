@@ -2,22 +2,15 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-import {
-  CardDependency,
-  LogType,
-  NotionCardItem,
-  NotionLog,
-  SyncAction,
-  isCardDependency,
-  isNotionCardItem,
-} from './models.ts'
+import { LogType, NotionLog, SyncAction } from './models.ts'
 import NotionAPI from './notion-api.ts'
+import { extractRelations, getRelationTable } from './relation-handler.ts'
 import Supabase from './supabase-api.ts'
 
 // TODO: Setup cron https://youtu.be/-U6DJcjVvGo?si=NLUtt5fftG65RcwF
 
 Deno.serve(async () => {
-  const relations = []
+  const relations: object[] = []
 
   const responseInit: ResponseInit = {
     status: 200,
@@ -43,7 +36,7 @@ Deno.serve(async () => {
       // Handle items
       for (const item of items) {
         try {
-          if (isNotionCardItem(item)) relations.push(...extractCardRelations(item))
+          relations.concat(extractRelations(item))
 
           switch (item._sync_action) {
             case SyncAction.PUBLISH:
@@ -63,17 +56,15 @@ Deno.serve(async () => {
 
       // Handle relations
       for (const relation of relations) {
-        let table = null
-        if (isCardDependency(relation)) table = 'card_dependencies'
-        if (table === null) continue
-
         try {
-          if (relation._sync_action !== SyncAction.PUBLISH) continue
+          const table = getRelationTable(relation)
+          if (!table) continue
+
           await Supabase.pushItem(table, relation)
         } catch (error) {
           if (!(error instanceof Error)) throw error
           console.warn(error.message)
-          NotionAPI.logWarning(`Pushing relation '${relation.parent} -> ${relation.child}' failed`, error, relation)
+          NotionAPI.logWarning(`Pushing relation failed`, error, relation)
           throw error
         }
       }
@@ -90,25 +81,3 @@ Deno.serve(async () => {
   NotionAPI.log(logResponse)
   return new Response(JSON.stringify(logResponse), responseInit)
 })
-
-function extractCardRelations(item: NotionCardItem) {
-  const relations: CardDependency[] = []
-
-  for (const parent of item._parents) {
-    relations.push({
-      parent: parent,
-      child: item.id,
-      _sync_action: item._sync_action,
-    })
-  }
-
-  for (const child of item._children) {
-    relations.push({
-      parent: item.id,
-      child: child,
-      _sync_action: item._sync_action,
-    })
-  }
-
-  return relations
-}

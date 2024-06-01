@@ -15,6 +15,7 @@ export enum LogType {
 export type NotionCardItem = NotionItem & {
   _parents: string[]
   _children: string[]
+  _packs: string[]
   _sync_action: SyncAction
 }
 
@@ -22,24 +23,13 @@ export function isNotionCardItem(item: object): item is NotionCardItem {
   return '_parents' in item && '_children' in item && isNotionItem(item)
 }
 
-export type CardDependency = {
-  parent: string
-  child: string
+export type NotionPackItem = NotionItem & {
+  _cards: string[]
   _sync_action: SyncAction
 }
 
-export function isCardDependency(relation: object): relation is CardDependency {
-  return 'parent' in relation && 'child' in relation
-}
-
-export type CardPackRelation = {
-  card: string
-  pack: string
-  _sync_action: SyncAction
-}
-
-export function isCardPackRelation(relation: object): relation is CardPackRelation {
-  return 'card' in relation && 'pack' in relation
+export function isNotionPackItem(item: object): item is NotionPackItem {
+  return '_cards' in item && isNotionItem(item)
 }
 
 export type NotionIndex = {
