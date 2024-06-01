@@ -1,4 +1,4 @@
-import { NotionCardItem, NotionPackItem, SyncAction, isNotionCardItem, isNotionPackItem } from './models.ts'
+import { NotionCardItem, NotionPackItem, isNotionCardItem, isNotionPackItem } from './models.ts'
 import { NotionItem } from './notion-parser.ts'
 
 const CARD_RELATION_TABLE = 'card_dependencies'
