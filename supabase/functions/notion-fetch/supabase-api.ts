@@ -1,6 +1,6 @@
 // Docs: https://supabase.com/docs/reference/javascript/introduction
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
-import { NotionItem } from './notion-parser.ts'
+import { NotionItem, isNotionItem } from './notion-parser.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 if (!SUPABASE_URL) throw new Error('SUPABASE_URL is required!')
@@ -10,7 +10,7 @@ if (!SUPABASE_SECRET) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required!')
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET)
 
-async function pushItem(table: string, item: NotionItem) {
+async function pushItem(table: string, item: object) {
   const response = await supabase.from(table).upsert(getSanitized(item), { ignoreDuplicates: false }).select()
 
   if (response.error) {
@@ -20,7 +20,7 @@ async function pushItem(table: string, item: NotionItem) {
     )
   }
 
-  console.log(`pushed: '${item.id}'`)
+  if (isNotionItem(item)) console.log(`pushed: '${item.id}'`)
   return { data: response.data, status: response.count }
 }
 
@@ -36,12 +36,7 @@ async function deleteItem(table: string, item: NotionItem) {
 }
 
 function getSanitized(item: object) {
-  const sanitized: { [key: string]: unknown } = {
-    ...item,
-    sync_action: undefined,
-    parents: undefined,
-    children: undefined,
-  }
+  const sanitized: { [key: string]: unknown } = { ...item }
 
   for (const key in sanitized) {
     if (key.startsWith('_')) delete sanitized[key]
