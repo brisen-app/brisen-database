@@ -24,8 +24,6 @@ export function toNotionProperties(item: object): CreateNotionProperty {
   const properties: ReturnType<typeof toNotionProperties> = {}
 
   for (const key in item) {
-    if (key.startsWith('_')) continue
-    //if (key === 'created_at' || key === 'modified_at') continue
     // @ts-expect-error: This is fine
     properties[key] = createNotionProperty(key, item[key])
   }

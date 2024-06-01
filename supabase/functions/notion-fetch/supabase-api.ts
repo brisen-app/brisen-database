@@ -11,10 +11,7 @@ if (!SUPABASE_SECRET) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required!')
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET)
 
 async function pushItem(table: string, item: object) {
-  const response = await supabase
-    .from(table)
-    .upsert({ ...item, sync_action: undefined, parents: undefined, children: undefined }, { ignoreDuplicates: false })
-    .select()
+  const response = await supabase.from(table).upsert(getSanitized(item), { ignoreDuplicates: false }).select()
 
   if (response.error) {
     if (response.error?.code === '23503') return
@@ -34,6 +31,20 @@ async function deleteItem(table: string, item: NotionItem) {
 
   console.log(`deleted: '${item.id}'`)
   return { data: response.data, status: response.count }
+}
+
+function getSanitized(item: object) {
+  const sanitized: { [key: string]: unknown } = {
+    ...item,
+    sync_action: undefined,
+    parents: undefined,
+    children: undefined,
+  }
+
+  for (const key in sanitized) {
+    if (key.startsWith('_')) delete sanitized[key]
+  }
+  return sanitized
 }
 
 const Supabase = { pushItem, deleteItem }
