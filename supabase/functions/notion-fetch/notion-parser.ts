@@ -43,8 +43,9 @@ export function toNotionItem(page: PageObjectResponse | PartialPageObjectRespons
   if (page.icon?.type === 'emoji') item.icon = page.icon.emoji.toString()
 
   for (const key in page.properties) {
-    item[key] = getValue(page.properties[key])
+    item[key] = getValue(key, page.properties[key])
   }
+  console.log('parsed:', item)
   return item
 }
 
@@ -68,7 +69,7 @@ function createNotionProperty<T>(key: string, value: T): CreateNotionProperty[ke
   throw new TypeError(`Unsupported value type of key ${key}: ${typeof value}`)
 }
 
-function getValue(property: PageObjectResponse['properties'][string]) {
+function getValue(key: string, property: PageObjectResponse['properties'][string]) {
   switch (property.type) {
     case 'title':
       if (property.title.length === 0) return undefined
@@ -101,7 +102,7 @@ function getValue(property: PageObjectResponse['properties'][string]) {
     case 'formula':
       return property.formula
     case 'relation':
-      if (property.relation.length === 1) return property.relation[0].id
+      if (!key.startsWith('_') && property.relation.length === 0) return property.relation[0].id
       return property.relation.map((relation) => relation.id)
     case 'rollup':
       return property.rollup
