@@ -10,6 +10,8 @@ import Supabase from './supabase-api.ts'
 
 // TODO: Setup cron https://youtu.be/-U6DJcjVvGo?si=NLUtt5fftG65RcwF
 
+const relations: object[] = []
+
 const responseInit: ResponseInit = {
   status: 200,
   headers: {
@@ -24,26 +26,12 @@ const logResponse: NotionLog = {
 }
 
 Deno.serve(async () => {
-  const relations: object[] = []
-
   try {
     const tables = await NotionAPI.fetchDatabaseIndex()
     const lastSync = await NotionAPI.fetchLastSyncDate()
 
-    for (const table of tables) {
-      console.log('fetching', table.name)
-      const items = await NotionAPI.fetchItems(table.id, lastSync)
-      console.log('fetched', items.length, table.name)
-
-      for (const item of items) {
-        const itemRelations = await handleItem(table, item)
-        relations.push(...itemRelations)
-      }
-    }
-
-    for (const relation of relations) {
-      await handleRelations(relation)
-    }
+    await Promise.all(tables.map((table) => handleTable(table, lastSync)))
+    await Promise.all(relations.map(handleRelations))
   } catch (error) {
     console.error(error)
     responseInit.status = 500
@@ -57,8 +45,15 @@ Deno.serve(async () => {
   return new Response(JSON.stringify(logResponse), responseInit)
 })
 
+async function handleTable(table: NotionIndex, lastSync: Date | null) {
+  console.log('fetching', table.name)
+  const items = await NotionAPI.fetchItems(table.id, lastSync)
+  console.log('fetched', items.length, table.name)
+
+  Promise.all(items.map((item) => handleItem(table, item)))
+}
+
 async function handleItem(table: NotionIndex, item: NotionItem) {
-  const relations: object[] = []
   try {
     switch (item._sync_action) {
       case SyncAction.PUBLISH:
@@ -75,7 +70,6 @@ async function handleItem(table: NotionIndex, item: NotionItem) {
     console.warn(error.message)
     NotionAPI.logError(`Performing '${item._sync_action}' on '${item.id}' failed`, error, item)
   }
-  return relations
 }
 
 async function handleRelations(relation: object) {
