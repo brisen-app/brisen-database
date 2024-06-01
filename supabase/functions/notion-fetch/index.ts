@@ -65,7 +65,6 @@ Deno.serve(async () => {
           if (!(error instanceof Error)) throw error
           console.warn(error.message)
           NotionAPI.logWarning(`Pushing relation failed`, error, relation)
-          throw error
         }
       }
     }
