@@ -36,15 +36,15 @@ export function getRelationTable(relation: object) {
 
 function extractCardRelations(item: NotionCardItem) {
   return [
-    ...item._parents.map((parent) => ({
+    ...(item._parents ?? []).map((parent) => ({
       parent: parent,
       child: item.id,
     })),
-    ...item._children.map((child) => ({
+    ...(item._children ?? []).map((child) => ({
       parent: item.id,
       child: child,
     })),
-    ...item._packs.map((pack) => ({
+    ...(item._packs ?? []).map((pack) => ({
       card: item.id,
       pack: pack,
     })),
@@ -52,7 +52,7 @@ function extractCardRelations(item: NotionCardItem) {
 }
 
 function extractPackRelations(item: NotionPackItem) {
-  return item._cards.map((card) => ({
+  return (item._cards ?? []).map((card) => ({
     card: card,
     pack: item.id,
   }))
