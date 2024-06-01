@@ -1,5 +1,13 @@
 {
   "devDependencies": {
     "supabase": "^1.142.2"
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "useTabs": false,
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120
   }
 }

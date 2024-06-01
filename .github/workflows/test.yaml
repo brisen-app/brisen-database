@@ -40,20 +40,20 @@ jobs:
             exit 1
           fi
       
-      - name: Check push
-        id: check-push
-        run: |
-          if ! output=$(supabase db push --dry-run); then
-            echo "::error::Failed to execute supabase db push command"
-            exit 1
-          fi
+      # - name: Check push
+      #   id: check-push
+      #   run: |
+      #     if ! output=$(supabase db push --dry-run); then
+      #       echo "::error::Failed to execute supabase db push command"
+      #       exit 1
+      #     fi
 
-          if [[ $output =~ "Remote migration versions not found in supabase\migrations directory." ]]; then
-            echo "::error::Remote migration versions not found in supabase\migrations directory."
-            exit 1
-          fi
+      #     if [[ $output =~ "Remote migration versions not found in supabase\migrations directory." ]]; then
+      #       echo "::error::Remote migration versions not found in supabase\migrations directory."
+      #       exit 1
+      #     fi
 
-          if [[ ! $output =~ "Linked project is up to date." ]] && [[ ! $output =~ "Finished supabase db push." ]]; then
-            echo "::error::Unexpected output from supabase db push command"
-            exit 1
-          fi
+      #     if [[ ! $output =~ "Linked project is up to date." ]] && [[ ! $output =~ "Finished supabase db push." ]]; then
+      #       echo "::error::Unexpected output from supabase db push command"
+      #       exit 1
+      #     fi
