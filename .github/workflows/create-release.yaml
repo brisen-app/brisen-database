@@ -47,5 +47,5 @@ jobs:
           title: "Deploy release ${{ inputs.release }}"
           body: "This PR contains the changes for release ${{ inputs.release }}."
           branch: "release/${{ inputs.release }}"
-          base: main
+          base: develop
           reviewers: mrkallerud

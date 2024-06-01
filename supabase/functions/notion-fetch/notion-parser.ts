@@ -101,6 +101,7 @@ function getValue(key: string, property: PageObjectResponse['properties'][string
     case 'formula':
       return property.formula
     case 'relation':
+      if (property.relation.length === 0) return undefined
       if (!key.startsWith('_') && property.relation.length === 1) return property.relation[0].id
       return property.relation.map((relation) => relation.id)
     case 'rollup':
