@@ -1,7 +1,3 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
 import { LogType, NotionIndex, NotionLog, SyncAction } from './models.ts'
 import NotionAPI from './notion-api.ts'
 import { NotionItem } from './notion-parser.ts'
