@@ -4,8 +4,6 @@ import { NotionItem } from './notion-parser.ts'
 import { extractRelations, getRelationTable } from './relation-handler.ts'
 import Supabase from './supabase-api.ts'
 
-// TODO: Setup cron https://youtu.be/-U6DJcjVvGo?si=NLUtt5fftG65RcwF
-
 const relations: object[] = []
 
 const responseInit: ResponseInit = {

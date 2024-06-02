@@ -73,16 +73,14 @@ function createNotionProperty<T>(key: string, value: T): CreateNotionProperty[ke
 function getBaseValue(key: string, property: Extract<RollupProperty, { type: 'array' }>['array'][number]) {
   switch (property.type) {
     case 'title':
-      if (property.title.length === 0) return undefined
+      if (property.title.length === 0) return null
       return property.title[0].plain_text
     case 'rich_text':
-      if (property.rich_text.length === 0) return undefined
+      if (property.rich_text.length === 0) return null
       return property.rich_text[0].plain_text
     case 'people':
-      if (property.people.length === 0) return undefined
       return property.people.map((person) => (isFullUser(person) ? person.name : person.id))
     case 'relation':
-      if (property.relation.length === 0) return undefined
       if (!key.startsWith('_') && property.relation.length === 1) return property.relation[0].id
       return property.relation.map((relation) => relation.id)
   }
@@ -97,12 +95,12 @@ function getValue(key: string, property: PageObjectResponse['properties'][string
     case 'status':
       return property.status?.name
     case 'multi_select':
-      if (property.multi_select.length === 0) return undefined
+      if (property.multi_select.length === 0) return null
       return property.multi_select.map((option) => option.name)
     case 'date':
       return property.date?.start
     case 'files':
-      if (property.files.length === 0) return undefined
+      if (property.files.length === 0) return []
       return property.files.map((file) => {
         if (file.type === 'external') return file.external.url
         if (file.type === 'file') return file.file.url
