@@ -81,6 +81,7 @@ function getBaseValue(key: string, property: Extract<RollupProperty, { type: 'ar
     case 'people':
       return property.people.map((person) => (isFullUser(person) ? person.name : person.id))
     case 'relation':
+      if (property.relation.length === 0) return null
       if (!key.startsWith('_') && property.relation.length === 1) return property.relation[0].id
       return property.relation.map((relation) => relation.id)
   }
