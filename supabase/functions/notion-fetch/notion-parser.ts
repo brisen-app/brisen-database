@@ -1,12 +1,14 @@
 // Docs: https://github.com/cloudydeno/deno-notion_sdk
 import {
   CreatePageBodyParameters,
+  FormulaPropertyResponse,
   PageObjectResponse,
   PartialPageObjectResponse,
 } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
 import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
 
 type CreateNotionProperty = CreatePageBodyParameters['properties']
+type RollupProperty = Extract<PageObjectResponse['properties'][string], { type: 'rollup' }>['rollup']
 
 export type NotionItem = {
   id: string
@@ -68,7 +70,7 @@ function createNotionProperty<T>(key: string, value: T): CreateNotionProperty[ke
   throw new TypeError(`Unsupported value type of key ${key}: ${typeof value}`)
 }
 
-function getValue(key: string, property: PageObjectResponse['properties'][string]) {
+function getBaseValue(key: string, property: Extract<RollupProperty, { type: 'array' }>['array'][number]) {
   switch (property.type) {
     case 'title':
       if (property.title.length === 0) return undefined
@@ -76,6 +78,18 @@ function getValue(key: string, property: PageObjectResponse['properties'][string
     case 'rich_text':
       if (property.rich_text.length === 0) return undefined
       return property.rich_text[0].plain_text
+    case 'people':
+      if (property.people.length === 0) return undefined
+      return property.people.map((person) => (isFullUser(person) ? person.name : person.id))
+    case 'relation':
+      if (property.relation.length === 0) return undefined
+      if (!key.startsWith('_') && property.relation.length === 1) return property.relation[0].id
+      return property.relation.map((relation) => relation.id)
+  }
+}
+
+function getValue(key: string, property: PageObjectResponse['properties'][string]) {
+  switch (property.type) {
     case 'number':
       return property.number
     case 'select':
@@ -83,13 +97,16 @@ function getValue(key: string, property: PageObjectResponse['properties'][string
     case 'status':
       return property.status?.name
     case 'multi_select':
+      if (property.multi_select.length === 0) return undefined
       return property.multi_select.map((option) => option.name)
     case 'date':
       return property.date?.start
-    case 'people':
-      return property.people
     case 'files':
-      return property.files
+      if (property.files.length === 0) return undefined
+      return property.files.map((file) => {
+        if (file.type === 'external') return file.external.url
+        if (file.type === 'file') return file.file.url
+      })
     case 'checkbox':
       return property.checkbox
     case 'url':
@@ -99,26 +116,46 @@ function getValue(key: string, property: PageObjectResponse['properties'][string
     case 'phone_number':
       return property.phone_number
     case 'formula':
-      return property.formula
-    case 'relation':
-      if (property.relation.length === 0) return undefined
-      if (!key.startsWith('_') && property.relation.length === 1) return property.relation[0].id
-      return property.relation.map((relation) => relation.id)
+      return parseFormula(property.formula)
     case 'rollup':
-      return property.rollup
+      return parseRollup(key, property.rollup)
     case 'created_time':
       return property.created_time
     case 'created_by':
-      if (isFullUser(property.created_by)) return property.created_by.name
-      return property.created_by
+      return isFullUser(property.created_by) ? property.created_by.name : property.created_by.id
     case 'last_edited_time':
       return property.last_edited_time
     case 'last_edited_by':
-      if (isFullUser(property.last_edited_by)) {
-        return property.last_edited_by.name
-      }
-      return property.last_edited_by
+      return isFullUser(property.last_edited_by) ? property.last_edited_by.name : property.last_edited_by.id
     default:
-      throw new TypeError('Unknown property type: ' + property['type'])
+      return getBaseValue(key, property)
+  }
+}
+
+function parseFormula(value: FormulaPropertyResponse) {
+  switch (value.type) {
+    case 'string':
+      return value.string
+    case 'number':
+      return value.number
+    case 'boolean':
+      return value.boolean
+    case 'date':
+      return value.date?.start
+    default:
+      return undefined
+  }
+}
+
+function parseRollup(key: string, value: RollupProperty) {
+  switch (value.type) {
+    case 'array':
+      return value.array.map((item) => getBaseValue(key, item))
+    case 'number':
+      return value.number
+    case 'date':
+      return value.date?.start
+    default:
+      return undefined
   }
 }
