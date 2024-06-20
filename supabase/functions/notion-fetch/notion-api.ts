@@ -23,21 +23,30 @@ export default class NotionAPI {
     databaseId: string,
     filter: QueryDatabaseParameters['filter'] = undefined,
     sorts: QueryDatabaseParameters['sorts'] = undefined,
-    page_size = 100
+    page_size = 100,
+    tries = 10
   ) {
     const results: NotionItem[] = []
     let cursor: string | null | undefined = undefined
 
     while (cursor !== null) {
-      const response = await notion.databases.query({
-        database_id: databaseId,
-        filter: filter,
-        sorts: sorts,
-        page_size: page_size,
-        start_cursor: cursor,
-      })
-      results.push(...response.results.map(toNotionItem))
-      cursor = response.next_cursor
+      try {
+        const response = await notion.databases.query({
+          database_id: databaseId,
+          filter: filter,
+          sorts: sorts,
+          page_size: page_size,
+          start_cursor: cursor,
+        })
+        results.push(...response.results.map(toNotionItem))
+        cursor = response.next_cursor
+      } catch (error) {
+        console.error('Error fetching database:', error)
+        if (tries <= 0) throw error
+        console.log('Retrying in 5 seconds...')
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+        tries--
+      }
     }
 
     return results
