@@ -123,9 +123,9 @@ export default class NotionAPI {
     )) as object[] as NotionLog[]
 
     if (results.length === 0) return null
-    const lastSync = new Date(results[0].exact_time)
-    console.log('Last sync:', lastSync)
-    return lastSync
+    const since = new Date(results[0].exact_time)
+    console.log('Last sync:', since)
+    return since
   }
 
   static async pushItem(databaseId: string, item: object) {

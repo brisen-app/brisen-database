@@ -19,15 +19,18 @@ const logResponse: NotionLog = {
   type: LogType.INFO,
 }
 
-Deno.serve(async () => {
+Deno.serve(async (request) => {
   try {
+    const { lastSync } = await request.json()
+    const since = new Date(Date.parse(lastSync))
+    console.log('lastSync', since)
+
     const tables = await NotionAPI.fetchDatabaseIndex()
-    const lastSync = await NotionAPI.fetchLastSyncDate()
 
     await Promise.all(
       tables.map((table) => {
         checkTable(table)
-        syncTable(table, lastSync)
+        syncTable(table, since)
       })
     )
     await Promise.all(relations.map(syncRelations))
@@ -40,13 +43,12 @@ Deno.serve(async () => {
   }
 
   logResponse.duration = Date.now() - logResponse.timestamp.getTime()
-  NotionAPI.log(logResponse)
   return new Response(JSON.stringify(logResponse), responseInit)
 })
 
-async function syncTable(table: NotionIndex, lastSync: Date | null) {
+async function syncTable(table: NotionIndex, since: Date | null) {
   console.log('fetching', table.name)
-  const items = await NotionAPI.fetchItems(table.id, lastSync)
+  const items = await NotionAPI.fetchItems(table.id, since)
   console.log('fetched', items.length, table.name)
 
   Promise.all(items.map((item) => syncItem(table, item)))
