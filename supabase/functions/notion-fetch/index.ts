@@ -2,7 +2,7 @@ import { LogType, NotionIndex, NotionLog, SyncAction } from './models.ts'
 import NotionAPI from './notion-api.ts'
 import { NotionItem } from './notion-parser.ts'
 import { extractRelations, getRelationTable } from './relation-handler.ts'
-import Supabase from './supabase-api.ts'
+import Supabase, { SupabaseItem, SupabaseTableName } from './supabase-api.ts'
 
 const relations: object[] = []
 
@@ -24,8 +24,13 @@ Deno.serve(async () => {
     const tables = await NotionAPI.fetchDatabaseIndex()
     const lastSync = await NotionAPI.fetchLastSyncDate()
 
-    await Promise.all(tables.map((table) => handleTable(table, lastSync)))
-    await Promise.all(relations.map(handleRelations))
+    await Promise.all(
+      tables.map((table) => {
+        checkTable(table)
+        syncTable(table, lastSync)
+      })
+    )
+    await Promise.all(relations.map(syncRelations))
   } catch (error) {
     console.error(error)
     responseInit.status = 500
@@ -39,15 +44,15 @@ Deno.serve(async () => {
   return new Response(JSON.stringify(logResponse), responseInit)
 })
 
-async function handleTable(table: NotionIndex, lastSync: Date | null) {
+async function syncTable(table: NotionIndex, lastSync: Date | null) {
   console.log('fetching', table.name)
   const items = await NotionAPI.fetchItems(table.id, lastSync)
   console.log('fetched', items.length, table.name)
 
-  Promise.all(items.map((item) => handleItem(table, item)))
+  Promise.all(items.map((item) => syncItem(table, item)))
 }
 
-async function handleItem(table: NotionIndex, item: NotionItem) {
+async function syncItem(table: NotionIndex, item: NotionItem) {
   try {
     switch (item._sync_action) {
       case SyncAction.PUBLISH:
@@ -66,7 +71,7 @@ async function handleItem(table: NotionIndex, item: NotionItem) {
   }
 }
 
-async function handleRelations(relation: object) {
+async function syncRelations(relation: object) {
   try {
     const table = getRelationTable(relation)
     if (!table) return
@@ -77,4 +82,19 @@ async function handleRelations(relation: object) {
     console.warn(error.message)
     NotionAPI.logWarning(`Pushing relation failed`, error, relation)
   }
+}
+
+async function checkTable(table: NotionIndex) {
+  console.log('checking', table.name)
+  const supabaseItems = await Supabase.fetchItems(table.name)
+  const notionIds = new Set((await NotionAPI.fetchItems(table.id, null)).map((item) => item.id))
+
+  Promise.all(supabaseItems.map((item) => checkItem(table.name, item, notionIds)))
+}
+
+async function checkItem(table: SupabaseTableName, item: SupabaseItem, notionItems: Set<string>) {
+  if (notionItems.has(item.id)) return
+
+  console.log('deleting', item.id)
+  await Supabase.deleteItem(table, item)
 }

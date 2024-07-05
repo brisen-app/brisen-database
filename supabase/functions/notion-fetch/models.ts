@@ -1,4 +1,5 @@
 import { NotionItem, isNotionItem } from './notion-parser.ts'
+import { SupabaseTableName } from './supabase-api.ts'
 
 export enum SyncAction {
   PUBLISH = 'publish',
@@ -34,7 +35,7 @@ export function isNotionPackItem(item: object): item is NotionPackItem {
 
 export type NotionIndex = {
   id: string
-  name: string
+  name: SupabaseTableName
   enabled: boolean
 }
 
