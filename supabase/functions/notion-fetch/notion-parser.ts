@@ -6,6 +6,7 @@ import {
   PartialPageObjectResponse,
 } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
 import { isFullPage, isFullUser } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
+import NotionAPI from './notion-api.ts'
 
 type CreateNotionProperty = CreatePageBodyParameters['properties']
 type RollupProperty = Extract<PageObjectResponse['properties'][string], { type: 'rollup' }>['rollup']
@@ -15,7 +16,7 @@ export type NotionItem = {
   created_at: string
   modified_at: string
 } & {
-  [key: string]: ReturnType<typeof getValue>
+  [key: string]: Awaited<ReturnType<typeof getValue>>
 }
 
 export function isNotionItem(item: object): item is NotionItem {
@@ -33,7 +34,7 @@ export function toNotionProperties(item: object): CreateNotionProperty {
   return properties
 }
 
-export function toNotionItem(page: PageObjectResponse | PartialPageObjectResponse) {
+export async function toNotionItem(page: PageObjectResponse | PartialPageObjectResponse) {
   if (!isFullPage(page)) throw new TypeError('Not a full page object: ' + page.id)
 
   const item: NotionItem = {
@@ -45,7 +46,7 @@ export function toNotionItem(page: PageObjectResponse | PartialPageObjectRespons
   if (page.icon?.type === 'emoji') item.icon = page.icon.emoji.toString()
 
   for (const key in page.properties) {
-    item[key] = getValue(key, page.properties[key])
+    item[key] = await getValue(key, page.properties[key])
   }
   return item
 }
@@ -70,7 +71,7 @@ function createNotionProperty<T>(key: string, value: T): CreateNotionProperty[ke
   throw new TypeError(`Unsupported value type of key ${key}: ${typeof value}`)
 }
 
-function getBaseValue(key: string, property: Extract<RollupProperty, { type: 'array' }>['array'][number]) {
+async function getBaseValue(key: string, property: Extract<RollupProperty, { type: 'array' }>['array'][number]) {
   switch (property.type) {
     case 'title':
       if (property.title.length === 0) return null
@@ -83,11 +84,13 @@ function getBaseValue(key: string, property: Extract<RollupProperty, { type: 'ar
     case 'relation':
       if (property.relation.length === 0) return null
       if (!key.startsWith('_') && property.relation.length === 1) return property.relation[0].id
+      console.log('related entity', property.relation[0].id)
+      if (key == 'language') return (await NotionAPI.fetchItem(property.relation[0].id)).id
       return property.relation.map((relation) => relation.id)
   }
 }
 
-function getValue(key: string, property: PageObjectResponse['properties'][string]) {
+async function getValue(key: string, property: PageObjectResponse['properties'][string]) {
   switch (property.type) {
     case 'number':
       return property.number
@@ -127,7 +130,7 @@ function getValue(key: string, property: PageObjectResponse['properties'][string
     case 'last_edited_by':
       return isFullUser(property.last_edited_by) ? property.last_edited_by.name : property.last_edited_by.id
     default:
-      return getBaseValue(key, property)
+      return await getBaseValue(key, property)
   }
 }
 

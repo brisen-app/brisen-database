@@ -38,7 +38,7 @@ export default class NotionAPI {
           page_size: page_size,
           start_cursor: cursor,
         })
-        results.push(...response.results.map(toNotionItem))
+        for (const item of response.results) results.push(await toNotionItem(item))
         cursor = response.next_cursor
       } catch (error) {
         console.error('Error fetching database:', error)
@@ -79,6 +79,14 @@ export default class NotionAPI {
         },
       ],
     })
+  }
+
+  static async fetchItem(id: string): Promise<NotionItem> {
+    const response = await notion.pages.retrieve({
+      page_id: id,
+    })
+
+    return await toNotionItem(response)
   }
 
   static async fetchDatabaseIndex() {

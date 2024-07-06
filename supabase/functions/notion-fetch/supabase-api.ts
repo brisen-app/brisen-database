@@ -27,10 +27,11 @@ async function fetchItems(table: SupabaseTableName) {
 }
 
 async function pushItem(table: SupabaseTableName, item: object) {
+  console.log('pushing', item)
   const response = await supabase.from(table).upsert(getSanitized(item), { ignoreDuplicates: false }).select()
+  console.log('recieved', response)
 
   if (response.error) {
-    if (response.error?.code === '23503') return
     throw new Error(
       `upsertItem(): ${response.status} ${response.statusText}:\n${JSON.stringify(response.error, null, 2)}`
     )
