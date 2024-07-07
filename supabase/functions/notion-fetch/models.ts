@@ -1,4 +1,4 @@
-import { NotionItem, isNotionItem } from './notion-parser.ts'
+import { SupabaseAttributeType } from './notion-parser.ts'
 import { Database } from './supabase.ts'
 
 export enum SyncAction {
@@ -14,36 +14,59 @@ export enum LogType {
 }
 
 export type SupabaseTableName = keyof Database['public']['Tables']
-export type SupabaseItem = Database['public']['Tables'][SupabaseTableName]['Row'] & { id: string }
+export type SupabaseItem = {
+  id: string
+  _sync_action?: SyncAction
+  [key: string]: SupabaseAttributeType | undefined
+} & Database['public']['Tables'][SupabaseTableName]['Row']
 
-export type NotionCardItem = NotionItem & {
+// deno-lint-ignore no-explicit-any
+export function isSupabaseItem(item: any): item is SupabaseItem {
+  if (!(item instanceof Object)) return false
+  return 'id' in item
+}
+
+// deno-lint-ignore no-explicit-any
+export function isGuid(value: any): value is string {
+  return !!RegExp(/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i).exec(value)
+}
+
+export type CardItem = SupabaseItem & {
   _parents: string[]
   _children: string[]
   _packs: string[]
   _sync_action: SyncAction
 }
 
-export function isNotionCardItem(item: object): item is NotionCardItem {
-  return '_parents' in item && '_children' in item && isNotionItem(item)
+export function isCardItem(item: object): item is CardItem {
+  return '_parents' in item && '_children' in item && isSupabaseItem(item)
 }
 
-export type NotionPackItem = NotionItem & {
+export type PackItem = SupabaseItem & {
   _cards: string[]
   _sync_action: SyncAction
 }
 
-export function isNotionPackItem(item: object): item is NotionPackItem {
-  return '_cards' in item && isNotionItem(item)
+export function isPackItem(item: object): item is PackItem {
+  return '_cards' in item && isSupabaseItem(item)
 }
 
-export type NotionIndex = {
-  id: string
-  name: SupabaseTableName
+export type DatabaseIndex = {
+  notion: string
+  supabase: SupabaseTableName
   enabled: boolean
 }
 
-export function isNotionIndex(index: object): index is NotionIndex {
-  return 'id' in index && 'name' in index && 'enabled' in index
+// deno-lint-ignore no-explicit-any
+export function isDatabaseIndex(item: any): item is DatabaseIndex {
+  if (!(item instanceof Object)) return false
+  return 'notion' in item && 'supabase' in item && 'enabled' in item
+}
+
+// deno-lint-ignore no-explicit-any
+export function isDatabaseIndexList(item: any): item is DatabaseIndex[] {
+  if (!(item instanceof Array)) return false
+  return item.every(isDatabaseIndex)
 }
 
 export type NotionLog = {

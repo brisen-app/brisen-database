@@ -1,9 +1,9 @@
 // Docs: https://supabase.com/docs/reference/javascript/introduction
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
-import { isNotionItem } from './notion-parser.ts'
+import { PostgrestError, createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
 import { Database } from './supabase.ts'
-import { SupabaseItem, SupabaseTableName } from './models.ts'
+import { SupabaseItem, SupabaseTableName, isSupabaseItem } from './models.ts'
+import NotionAPI from './notion-api.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 if (!SUPABASE_URL) throw new Error('SUPABASE_URL is required!')
@@ -25,32 +25,36 @@ async function fetchItems(table: SupabaseTableName) {
   return response.data as SupabaseItem[]
 }
 
-async function pushItem(table: SupabaseTableName, item: object) {
-  console.log('pushing', item)
-
-  for (const key in item) {
-    const value = item[key]
-    if (!isNotionItem(value)) continue
-    await pushItem(table, value)
-    item[key] = value.id
-  }
-
-  console.log('as', item)
-
-  const response = await supabase.from(table).upsert(getSanitized(item), { ignoreDuplicates: false }).select()
-  console.log('recieved', response)
+async function pushItem(index: string, item: object): Promise<void> {
+  const response = await supabase.from(index).upsert(getSanitized(item), { ignoreDuplicates: false }).select()
 
   if (response.error) {
+    if (response.error?.code == '23503' && isSupabaseItem(item))
+      return handleItemNotPresent(index, item, response.error)
+
     throw new Error(
       `upsertItem(): ${response.status} ${response.statusText}:\n${JSON.stringify(response.error, null, 2)}`
     )
   }
 
-  if (isNotionItem(item)) console.log(`pushed: '${item.id}'`)
-  return { data: response.data, status: response.count }
+  if (isSupabaseItem(item)) console.log('pushed:', item.id)
+  else console.log('pushed:', item)
 }
 
-async function deleteItem(table: SupabaseTableName, item: { id: string }) {
+async function handleItemNotPresent(index: string, item: SupabaseItem, error: PostgrestError) {
+  const key = RegExp(/Key \(([^)]+)\)/).exec(error.details)?.[1]
+  const table = RegExp(/table "(.*?)"/).exec(error.details)?.[1]
+  if (!key || !table) throw error
+  const id = item[key] as string
+  const relatedItem = await NotionAPI.fetchItem(id)
+  if (!relatedItem) throw new Error(`Related item '${id}' not found`)
+  if (relatedItem._sync_action !== 'publish') throw new Error(`Related item '${id}' is not published`)
+  item[key] = relatedItem.id
+  await pushItem(table, relatedItem)
+  return await pushItem(index, item)
+}
+
+async function deleteItem(table: string, item: { id: string }) {
   const response = await supabase.from(table).delete().eq('id', item.id)
   if (response.error)
     throw new Error(

@@ -1,10 +1,9 @@
-import { LogType, NotionIndex, NotionLog, SupabaseItem, SyncAction } from './models.ts'
+import { LogType, DatabaseIndex, NotionLog, SupabaseItem, SyncAction } from './models.ts'
 import NotionAPI from './notion-api.ts'
-import { NotionItem } from './notion-parser.ts'
-import { extractRelations, getRelationTable } from './relation-handler.ts'
+import { Relation, extractRelations, getRelationTable } from './relation-handler.ts'
 import Supabase from './supabase-api.ts'
 
-const relations: object[] = []
+const relations: Relation[] = []
 
 const responseInit: ResponseInit = {
   status: 200,
@@ -22,13 +21,14 @@ const logResponse: NotionLog = {
 Deno.serve(async (request) => {
   try {
     const { lastSync } = await request.json()
-    const since = Date.parse(lastSync) ?? 0
-    console.log('lastSync', new Date(since))
+    const since = new Date(Date.parse(lastSync) ?? 0)
+    console.log('lastSync', since)
 
     const tables = await NotionAPI.fetchDatabaseIndex()
 
     await Promise.all(tables.map((table) => syncTable(table, since)))
     await Promise.all(relations.map(syncRelations))
+    console.log(logResponse.title, 'in', (Date.now() - logResponse.timestamp.getTime()) / 1000, 'sec')
   } catch (error) {
     console.error('Internal Server Error', error)
     responseInit.status = 500
@@ -41,31 +41,31 @@ Deno.serve(async (request) => {
   return new Response(JSON.stringify(logResponse), responseInit)
 })
 
-async function syncTable(table: NotionIndex, since: number) {
-  console.log('syncing', table.name)
-  const supabaseItems = await Supabase.fetchItems(table.name)
-  const notionItems = await NotionAPI.fetchItems(table.id)
-  const modifiedNotionItems = notionItems.filter((item) => Date.parse(item.modified_at) >= since)
-  console.log('Found', modifiedNotionItems.length, 'modified', table.name)
+async function syncTable(table: DatabaseIndex, since: Date) {
+  if (!table.enabled) return
+  console.log('syncing', table.supabase)
+  const supabaseItems = await Supabase.fetchItems(table.supabase)
+  const notionItems = await NotionAPI.fetchItems(table.notion)
+  const modifiedNotionItems = notionItems.filter((item) => Date.parse(item.modified_at) >= since.getTime())
+  console.log('Found', modifiedNotionItems.length, 'modified', table.supabase)
 
   const toDelete = getItemsToDelete(supabaseItems, notionItems)
-  console.log('Found', toDelete.length, 'deleted', table.name)
+  console.log('Found', toDelete.length, 'deleted', table.supabase)
 
-  await Promise.all(toDelete.map((item) => Supabase.deleteItem(table.name, item)))
+  await Promise.all(toDelete.map((item) => Supabase.deleteItem(table.supabase, item)))
   await Promise.all(modifiedNotionItems.map((item) => syncItem(table, item)))
 }
 
-async function syncItem(table: NotionIndex, item: NotionItem) {
+async function syncItem(table: DatabaseIndex, item: SupabaseItem) {
   try {
     switch (item._sync_action) {
       case SyncAction.PUBLISH:
         relations.push(...extractRelations(item))
-        await Supabase.pushItem(table.name, item)
-        break
+        return await Supabase.pushItem(table.supabase, item)
       case SyncAction.UNPUBLISH:
-        await Supabase.deleteItem(table.name, item)
-        break
+        return await Supabase.deleteItem(table.supabase, item)
       default:
+        throw new Error('Unsupported sync action: ' + item._sync_action)
     }
   } catch (error) {
     if (!(error instanceof Error)) throw error
@@ -75,7 +75,7 @@ async function syncItem(table: NotionIndex, item: NotionItem) {
   }
 }
 
-async function syncRelations(relation: object) {
+async function syncRelations(relation: Relation) {
   try {
     const table = getRelationTable(relation)
     if (!table) return
@@ -88,7 +88,7 @@ async function syncRelations(relation: object) {
   }
 }
 
-function getItemsToDelete(supabaseItems: SupabaseItem[], notionItems: NotionItem[]) {
+function getItemsToDelete(supabaseItems: SupabaseItem[], notionItems: SupabaseItem[]) {
   const notionIds = new Set(notionItems.map((item) => item.id))
   return supabaseItems.filter((item) => !notionIds.has(item.id))
 }
