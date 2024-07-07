@@ -1,10 +1,9 @@
-import { LogType, NotionIndex, NotionLog, SyncAction } from './models.ts'
+import { LogType, DatabaseIndex, NotionLog, SupabaseItem, SyncAction } from './models.ts'
 import NotionAPI from './notion-api.ts'
-import { NotionItem } from './notion-parser.ts'
-import { extractRelations, getRelationTable } from './relation-handler.ts'
-import Supabase, { SupabaseItem, SupabaseTableName } from './supabase-api.ts'
+import { Relation, extractRelations, getRelationTable } from './relation-handler.ts'
+import Supabase from './supabase-api.ts'
 
-const relations: object[] = []
+const relations: Relation[] = []
 
 const responseInit: ResponseInit = {
   status: 200,
@@ -22,20 +21,17 @@ const logResponse: NotionLog = {
 Deno.serve(async (request) => {
   try {
     const { lastSync } = await request.json()
-    const since = new Date(Date.parse(lastSync))
+    const since = new Date(Date.parse(lastSync) ?? 0)
     console.log('lastSync', since)
 
     const tables = await NotionAPI.fetchDatabaseIndex()
 
-    await Promise.all(
-      tables.map((table) => {
-        checkTable(table)
-        syncTable(table, since)
-      })
-    )
+    await Promise.all(tables.map((table) => syncTable(table, since)))
     await Promise.all(relations.map(syncRelations))
+
+    console.log(logResponse.title, 'in', (Date.now() - logResponse.timestamp.getTime()) / 1000, 'sec')
   } catch (error) {
-    console.error(error)
+    console.error('Internal Server Error', error)
     responseInit.status = 500
     logResponse.title = `Internal Sever Error: ${error.message}`
     logResponse.type = LogType.ERROR
@@ -43,37 +39,44 @@ Deno.serve(async (request) => {
   }
 
   logResponse.duration = Date.now() - logResponse.timestamp.getTime()
+  if (logResponse.type != LogType.INFO) await NotionAPI.log(logResponse)
   return new Response(JSON.stringify(logResponse), responseInit)
 })
 
-async function syncTable(table: NotionIndex, since: Date | null) {
-  console.log('fetching', table.name)
-  const items = await NotionAPI.fetchItems(table.id, since)
-  console.log('fetched', items.length, table.name)
+async function syncTable(table: DatabaseIndex, since: Date) {
+  if (!table.enabled) return
+  console.log('Syncing', table.supabase)
+  const supabaseItems = await Supabase.fetchItems(table.supabase)
+  const notionItems = await NotionAPI.fetchItems(table.notion)
 
-  Promise.all(items.map((item) => syncItem(table, item)))
+  const modifiedNotionItems = notionItems.filter((item) => Date.parse(item.modified_at) >= since.getTime())
+  const toDelete = getItemsToDelete(supabaseItems, notionItems)
+  console.log('Found', modifiedNotionItems.length, 'modified and', toDelete.length, 'deleted', table.supabase)
+
+  await Promise.all(toDelete.map((item) => Supabase.deleteItem(table.supabase, item)))
+  await Promise.all(modifiedNotionItems.map((item) => syncItem(table, item)))
 }
 
-async function syncItem(table: NotionIndex, item: NotionItem) {
+async function syncItem(table: DatabaseIndex, item: SupabaseItem) {
   try {
     switch (item._sync_action) {
       case SyncAction.PUBLISH:
         relations.push(...extractRelations(item))
-        await Supabase.pushItem(table.name, item)
-        break
+        return await Supabase.pushItem(table.supabase, item)
       case SyncAction.UNPUBLISH:
-        await Supabase.deleteItem(table.name, item)
-        break
+        return await Supabase.deleteItem(table.supabase, item)
       default:
+        throw new Error('Unsupported sync action: ' + item._sync_action)
     }
   } catch (error) {
     if (!(error instanceof Error)) throw error
-    console.warn(error.message)
-    NotionAPI.logError(`Performing '${item._sync_action}' on '${item.id}' failed`, error, item)
+    const message = `Performing '${item._sync_action}' on '${item.id}' failed`
+    console.warn(message + ':', error.message)
+    NotionAPI.logError(message, error, item)
   }
 }
 
-async function syncRelations(relation: object) {
+async function syncRelations(relation: Relation) {
   try {
     const table = getRelationTable(relation)
     if (!table) return
@@ -86,17 +89,7 @@ async function syncRelations(relation: object) {
   }
 }
 
-async function checkTable(table: NotionIndex) {
-  console.log('checking', table.name)
-  const supabaseItems = await Supabase.fetchItems(table.name)
-  const notionIds = new Set((await NotionAPI.fetchItems(table.id, null)).map((item) => item.id))
-
-  Promise.all(supabaseItems.map((item) => checkItem(table.name, item, notionIds)))
-}
-
-async function checkItem(table: SupabaseTableName, item: SupabaseItem, notionItems: Set<string>) {
-  if (notionItems.has(item.id)) return
-
-  console.log('deleting', item.id)
-  await Supabase.deleteItem(table, item)
+function getItemsToDelete(supabaseItems: SupabaseItem[], notionItems: SupabaseItem[]) {
+  const notionIds = new Set(notionItems.map((item) => item.id))
+  return supabaseItems.filter((item) => !notionIds.has(item.id))
 }

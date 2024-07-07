@@ -1,0 +1,272 @@
+{
+	"info": {
+		"_postman_id": "14f67ceb-5a5f-4f8a-8c73-8b63637931f5",
+		"name": "supabase",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19589074"
+	},
+	"item": [
+		{
+			"name": "call edge function",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"lastSync\": \"{{$randomDateRecent}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{supabase_url}}/functions/v1/:edge-function",
+					"host": [
+						"{{supabase_url}}"
+					],
+					"path": [
+						"functions",
+						"v1",
+						":edge-function"
+					],
+					"variable": [
+						{
+							"key": "edge-function",
+							"value": "notion-fetch"
+						}
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "call notion-fetch",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"lastSync\": \"{{$randomDateRecent}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{supabase_url}}/functions/v1/:edge-function",
+							"host": [
+								"{{supabase_url}}"
+							],
+							"path": [
+								"functions",
+								"v1",
+								":edge-function"
+							],
+							"variable": [
+								{
+									"key": "edge-function",
+									"value": "notion-fetch"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "126"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "content-encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "date",
+							"value": "Sat, 06 Jul 2024 12:08:20 GMT"
+						},
+						{
+							"key": "X-Kong-Upstream-Latency",
+							"value": "343"
+						},
+						{
+							"key": "X-Kong-Proxy-Latency",
+							"value": "1"
+						},
+						{
+							"key": "Via",
+							"value": "kong/2.8.1"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"title\": \"Sync completed\",\n    \"timestamp\": \"2024-07-06T12:08:20.458Z\",\n    \"exact_time\": 1720267700458,\n    \"type\": \"info\",\n    \"duration\": 290\n}"
+				}
+			]
+		},
+		{
+			"name": "update",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Prefer",
+						"value": "resolution=merge-duplicates",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": \"9e5b0aca-2627-4fb6-8fc0-16da39608a2b\",\n    \"language\": \"na\",\n    \"pack\": \"pre\",\n    \"title\": \"Vors\",\n    \"description\": \"updated\" \n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{supabase_url}}/rest/v1/:relation_name",
+					"host": [
+						"{{supabase_url}}"
+					],
+					"path": [
+						"rest",
+						"v1",
+						":relation_name"
+					],
+					"query": [
+						{
+							"key": "language",
+							"value": "eq.nb",
+							"disabled": true
+						},
+						{
+							"key": "pack",
+							"value": "eq.pre",
+							"disabled": true
+						},
+						{
+							"key": "select",
+							"value": "*,details:packs(*)",
+							"disabled": true
+						},
+						{
+							"key": "filter",
+							"value": "language.eq.nb",
+							"disabled": true
+						},
+						{
+							"key": "conflict",
+							"value": "id",
+							"disabled": true
+						},
+						{
+							"key": "uuid",
+							"value": "eq.9e5b0aca-2627-4fb6-8fc0-16da39608a2b",
+							"disabled": true
+						}
+					],
+					"variable": [
+						{
+							"key": "relation_name",
+							"value": null
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "query",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{supabase_url}}/rest/v1/:relation_name",
+					"host": [
+						"{{supabase_url}}"
+					],
+					"path": [
+						"rest",
+						"v1",
+						":relation_name"
+					],
+					"query": [
+						{
+							"key": "language",
+							"value": "eq.nb",
+							"disabled": true
+						},
+						{
+							"key": "pack",
+							"value": "eq.pre",
+							"disabled": true
+						},
+						{
+							"key": "select",
+							"value": "*",
+							"disabled": true
+						},
+						{
+							"key": "filter",
+							"value": "language.eq.nb",
+							"disabled": true
+						}
+					],
+					"variable": [
+						{
+							"key": "relation_name",
+							"value": "cards_in_packs"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{supabase_jwt}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
