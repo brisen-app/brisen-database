@@ -1,5 +1,5 @@
 import { NotionItem, isNotionItem } from './notion-parser.ts'
-import { SupabaseTableName } from './supabase-api.ts'
+import { Database } from './supabase.ts'
 
 export enum SyncAction {
   PUBLISH = 'publish',
@@ -12,6 +12,9 @@ export enum LogType {
   WARN = 'warning',
   INFO = 'info',
 }
+
+export type SupabaseTableName = keyof Database['public']['Tables']
+export type SupabaseItem = Database['public']['Tables'][SupabaseTableName]['Row'] & { id: string }
 
 export type NotionCardItem = NotionItem & {
   _parents: string[]

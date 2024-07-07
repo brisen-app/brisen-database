@@ -19,7 +19,9 @@ export type NotionItem = {
   [key: string]: Awaited<ReturnType<typeof getValue>>
 }
 
-export function isNotionItem(item: object): item is NotionItem {
+// deno-lint-ignore no-explicit-any
+export function isNotionItem(item: any): item is NotionItem {
+  if (!(item instanceof Object)) return false
   return 'id' in item && 'created_at' in item && 'modified_at' in item
 }
 
@@ -83,9 +85,8 @@ async function getBaseValue(key: string, property: Extract<RollupProperty, { typ
       return property.people.map((person) => (isFullUser(person) ? person.name : person.id))
     case 'relation':
       if (property.relation.length === 0) return null
-      if (!key.startsWith('_') && property.relation.length === 1) return property.relation[0].id
-      console.log('related entity', property.relation[0].id)
-      if (key == 'language') return (await NotionAPI.fetchItem(property.relation[0].id)).id
+      if (!key.startsWith('_') && property.relation.length === 1)
+        return await NotionAPI.fetchItem(property.relation[0].id)
       return property.relation.map((relation) => relation.id)
   }
 }

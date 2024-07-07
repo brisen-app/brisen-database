@@ -19,6 +19,7 @@ if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 const notion = new Client({ auth: NOTION_SECRET })
 
 export default class NotionAPI {
+  private static queryCache: Map<string, NotionItem[]> = new Map()
   private static async query(
     databaseId: string,
     filter: QueryDatabaseParameters['filter'] = undefined,
@@ -26,11 +27,19 @@ export default class NotionAPI {
     page_size = 100,
     tries = 10
   ) {
+    const cacheKey = JSON.stringify([databaseId, filter, sorts, page_size])
+
+    if (NotionAPI.queryCache.has(cacheKey)) {
+      console.log('cache hit', cacheKey)
+      return NotionAPI.queryCache.get(cacheKey)!
+    }
+
     const results: NotionItem[] = []
     let cursor: string | null | undefined = undefined
 
     while (cursor !== null) {
       try {
+        const start = Date.now()
         const response = await notion.databases.query({
           database_id: databaseId,
           filter: filter,
@@ -38,6 +47,7 @@ export default class NotionAPI {
           page_size: page_size,
           start_cursor: cursor,
         })
+        console.log('Queried', databaseId, 'in', Date.now() - start, 'ms')
         for (const item of response.results) results.push(await toNotionItem(item))
         cursor = response.next_cursor
       } catch (error) {
@@ -52,7 +62,7 @@ export default class NotionAPI {
     return results
   }
 
-  static async fetchItems(databaseId: string, since: Date | null) {
+  static async fetchItems(databaseId: string, since: Date | undefined = undefined) {
     return await NotionAPI.query(databaseId, {
       and: [
         {
