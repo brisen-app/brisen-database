@@ -65,7 +65,10 @@ async function handleItemNotPresent(
   const id = item[key] as string
   const relatedItem = await NotionAPI.fetchItem(id)
   if (!relatedItem) throw new Error(`Related item '${id}' not found`)
-  if (relatedItem._sync_action !== 'publish') throw new Error(`Related item '${id}' is not published`)
+  if (relatedItem._sync_action !== 'publish') {
+    console.warn(`Related item '${id}' is not published, skipping`)
+    return
+  }
 
   item[key] = relatedItem.id
   await pushItem(table, relatedItem)
