@@ -28,6 +28,7 @@ Deno.serve(async (request) => {
 
     await Promise.all(tables.map((table) => syncTable(table, since)))
     await Promise.all(relations.map(syncRelations))
+
     console.log(logResponse.title, 'in', (Date.now() - logResponse.timestamp.getTime()) / 1000, 'sec')
   } catch (error) {
     console.error('Internal Server Error', error)
@@ -38,6 +39,7 @@ Deno.serve(async (request) => {
   }
 
   logResponse.duration = Date.now() - logResponse.timestamp.getTime()
+  if (logResponse.type != LogType.INFO) await NotionAPI.log(logResponse)
   return new Response(JSON.stringify(logResponse), responseInit)
 })
 
