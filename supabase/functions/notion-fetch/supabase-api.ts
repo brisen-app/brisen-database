@@ -14,7 +14,11 @@ if (!SUPABASE_SECRET) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required!')
 const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_SECRET)
 
 async function fetchItems(table: SupabaseTableName) {
+  const start = Date.now()
   const response = await supabase.from(table).select()
+
+  const duration = (Date.now() - start) / 1000
+  if (duration > 1) console.log(`Slow query on ${table}:`, duration, 'sec')
 
   if (response.error) {
     throw new Error(
@@ -25,20 +29,24 @@ async function fetchItems(table: SupabaseTableName) {
   return response.data as SupabaseItem[]
 }
 
-async function pushItem(index: string, item: object): Promise<void> {
-  const response = await supabase.from(index).upsert(getSanitized(item), { ignoreDuplicates: false }).select()
+async function pushItem(table: string, item: object): Promise<void> {
+  const start = Date.now()
+  const response = await supabase.from(table).upsert(getSanitized(item), { ignoreDuplicates: false }).select()
+
+  const duration = (Date.now() - start) / 1000
+  if (duration > 1) console.log(`Slow query on ${table}:`, duration, 'sec')
 
   if (response.error) {
     if (response.error?.code == '23503' && isSupabaseItem(item))
-      return handleItemNotPresent(index, item, response.error)
+      return handleItemNotPresent(table, item, response.error)
 
     throw new Error(
       `upsertItem(): ${response.status} ${response.statusText}:\n${JSON.stringify(response.error, null, 2)}`
     )
   }
 
-  if (isSupabaseItem(item)) console.log('pushed:', item.id)
-  else console.log('pushed:', item)
+  if (isSupabaseItem(item)) console.log(`Pushed to ${table}:`, item.id)
+  else console.log(`Pushed to ${table}:`, item)
 }
 
 async function handleItemNotPresent(index: string, item: SupabaseItem, error: PostgrestError) {
@@ -55,13 +63,18 @@ async function handleItemNotPresent(index: string, item: SupabaseItem, error: Po
 }
 
 async function deleteItem(table: string, item: { id: string }) {
+  const start = Date.now()
   const response = await supabase.from(table).delete().eq('id', item.id)
+
+  const duration = (Date.now() - start) / 1000
+  if (duration > 1) console.log(`Slow delete on ${table}:`, duration, 'sec')
+
   if (response.error)
     throw new Error(
       `deleteItem(): ${response.status} ${response.statusText}:\n${JSON.stringify(response.error, null, 2)}`
     )
 
-  console.log(`deleted: '${item.id}'`)
+  console.log(`Deleted from ${table}:`, item.id)
   return { data: response.data, status: response.count }
 }
 

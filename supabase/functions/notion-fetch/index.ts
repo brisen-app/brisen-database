@@ -43,14 +43,13 @@ Deno.serve(async (request) => {
 
 async function syncTable(table: DatabaseIndex, since: Date) {
   if (!table.enabled) return
-  console.log('syncing', table.supabase)
+  console.log('Syncing', table.supabase)
   const supabaseItems = await Supabase.fetchItems(table.supabase)
   const notionItems = await NotionAPI.fetchItems(table.notion)
-  const modifiedNotionItems = notionItems.filter((item) => Date.parse(item.modified_at) >= since.getTime())
-  console.log('Found', modifiedNotionItems.length, 'modified', table.supabase)
 
+  const modifiedNotionItems = notionItems.filter((item) => Date.parse(item.modified_at) >= since.getTime())
   const toDelete = getItemsToDelete(supabaseItems, notionItems)
-  console.log('Found', toDelete.length, 'deleted', table.supabase)
+  console.log('Found', modifiedNotionItems.length, 'modified and', toDelete.length, 'deleted', table.supabase)
 
   await Promise.all(toDelete.map((item) => Supabase.deleteItem(table.supabase, item)))
   await Promise.all(modifiedNotionItems.map((item) => syncItem(table, item)))

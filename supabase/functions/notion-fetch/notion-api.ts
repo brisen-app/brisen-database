@@ -53,7 +53,7 @@ export default class NotionAPI {
         })
 
         const duration = (Date.now() - start) / 1000
-        if (duration > 1000) console.log(`Slow query on '${table}':`, duration, 'sec')
+        if (duration > 1) console.log(`Slow query on '${table}':`, duration, 'sec')
 
         for (const item of response.results) {
           if (isFullPage(item)) results.push(item)
@@ -100,7 +100,7 @@ export default class NotionAPI {
     })
 
     const duration = (Date.now() - start) / 1000
-    if (duration > 1000) console.log(`Slow to fetch '${response.id}':`, duration, 'ms')
+    if (duration > 1) console.log(`Slow to fetch '${response.id}':`, duration, 'ms')
 
     if (!isFullPage(response)) throw new Error('Invalid page response')
     return parse(response)
