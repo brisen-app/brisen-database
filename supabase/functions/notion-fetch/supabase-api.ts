@@ -2,7 +2,7 @@
 
 import { PostgrestError, createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
 import { Database } from './supabase.ts'
-import { SupabaseItem, SupabaseTableName, isSupabaseItem } from './models.ts'
+import { SupabaseItem, SupabaseTableName } from './models.ts'
 import NotionAPI from './notion-api.ts'
 import { SupabaseAttributeType } from './notion-parser.ts'
 

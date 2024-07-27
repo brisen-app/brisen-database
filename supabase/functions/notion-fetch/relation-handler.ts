@@ -35,21 +35,27 @@ export function getRelationTable(relation: object) {
   return null
 }
 
-function extractCardRelations(item: CardItem) {
-  return [
-    ...(item._parents ?? []).map((parent) => ({
+function extractCardRelations(item: CardItem): Relation[] {
+  const parentRelations = (item._parents ?? [])
+    .map((parent) => ({
       parent: parent,
       child: item.id,
-    })),
-    ...(item._children ?? []).map((child) => ({
+    }))
+    .filter((relation) => relation.parent !== item.id)
+
+  const childRelations = (item._children ?? [])
+    .map((child) => ({
       parent: item.id,
       child: child,
-    })),
-    ...(item._packs ?? []).map((pack) => ({
-      card: item.id,
-      pack: pack,
-    })),
-  ]
+    }))
+    .filter((relation) => relation.child !== item.id)
+
+  const packRelations = (item._packs ?? []).map((pack) => ({
+    card: item.id,
+    pack: pack,
+  }))
+
+  return [...parentRelations, ...childRelations, ...packRelations]
 }
 
 function extractPackRelations(item: PackItem) {
