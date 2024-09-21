@@ -1,8 +1,9 @@
-import { NotionCardItem, NotionPackItem, isNotionCardItem, isNotionPackItem } from './models.ts'
-import { NotionItem } from './notion-parser.ts'
+import { CardItem, PackItem, SupabaseItem, isCardItem, isPackItem } from './models.ts'
 
 const CARD_RELATION_TABLE = 'card_dependencies'
 const CARD_PACK_RELATION_TABLE = 'card_pack_rel'
+
+export type Relation = CardRelation | CardPackRelation
 
 export type CardRelation = {
   parent: string
@@ -22,9 +23,9 @@ export function isCardPackRelation(relation: object): relation is CardPackRelati
   return 'card' in relation && 'pack' in relation
 }
 
-export function extractRelations(item: NotionItem) {
-  if (isNotionCardItem(item)) return extractCardRelations(item)
-  if (isNotionPackItem(item)) return extractPackRelations(item)
+export function extractRelations(item: SupabaseItem) {
+  if (isCardItem(item)) return extractCardRelations(item)
+  if (isPackItem(item)) return extractPackRelations(item)
   return []
 }
 
@@ -34,24 +35,30 @@ export function getRelationTable(relation: object) {
   return null
 }
 
-function extractCardRelations(item: NotionCardItem) {
-  return [
-    ...(item._parents ?? []).map((parent) => ({
+function extractCardRelations(item: CardItem): Relation[] {
+  const parentRelations = (item._parents ?? [])
+    .map((parent) => ({
       parent: parent,
       child: item.id,
-    })),
-    ...(item._children ?? []).map((child) => ({
+    }))
+    .filter((relation) => relation.parent !== item.id)
+
+  const childRelations = (item._children ?? [])
+    .map((child) => ({
       parent: item.id,
       child: child,
-    })),
-    ...(item._packs ?? []).map((pack) => ({
-      card: item.id,
-      pack: pack,
-    })),
-  ]
+    }))
+    .filter((relation) => relation.child !== item.id)
+
+  const packRelations = (item._packs ?? []).map((pack) => ({
+    card: item.id,
+    pack: pack,
+  }))
+
+  return [...parentRelations, ...childRelations, ...packRelations]
 }
 
-function extractPackRelations(item: NotionPackItem) {
+function extractPackRelations(item: PackItem) {
   return (item._cards ?? []).map((card) => ({
     card: card,
     pack: item.id,

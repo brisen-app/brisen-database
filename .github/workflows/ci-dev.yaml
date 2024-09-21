@@ -1,0 +1,75 @@
+name: CI Develop
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - supabase/**/*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD_DEV }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF_DEV }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase and link project
+        run: |
+          supabase db start
+          supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+
+      - name: Run tests
+        run: supabase test db
+
+      - name: Verify generated types match Postgres schema
+        run: |
+          supabase gen types typescript --local > schema.gen.ts
+          if ! git diff --ignore-space-at-eol --exit-code --quiet schema.gen.ts; then
+            echo "Detected uncommitted changes after build. See status below:"
+            git diff
+            exit 1
+          fi
+
+  check-push:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD_DEV }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF_DEV }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Check push
+        id: check-push
+        run: |
+          if ! output=$(supabase db push --dry-run); then
+            echo "::error::Failed to execute supabase db push command"
+            exit 1
+          fi
+
+          if [[ $output =~ "Remote migration versions not found in supabase\migrations directory." ]]; then
+            echo "::error::Remote migration versions not found in supabase\migrations directory."
+            exit 1
+          fi
+
+          if [[ ! $output =~ "Linked project is up to date." ]] && [[ ! $output =~ "Finished supabase db push." ]]; then
+            echo "::error::Unexpected output from supabase db push command"
+            exit 1
+          fi

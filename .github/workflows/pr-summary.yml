@@ -1,0 +1,68 @@
+name: PR Summary
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - release/**
+    types:
+      - opened
+      - reopened
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.event.number || github.head_ref ||
+    github.sha }}-${{ github.workflow }}-${{ github.event_name ==
+    'pull_request_review_comment' && 'pr_comment' || 'pr' }}
+  cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
+
+jobs:
+  summarize:
+    name: AI Summary
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout source code'
+        uses: 'actions/checkout@v3'
+
+      - name: 'Review PR changes'
+        uses: coderabbitai/ai-pr-reviewer@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          debug: false
+          review_simple_changes: false
+          disable_review: true
+          openai_light_model: 'gpt-4o'
+          openai_heavy_model: 'gpt-4o'
+          summarize: |
+            Provide your final response in markdown with the following content:
+
+            - If necessary, suggest some improvements to the changes in the form
+            of a bullet list. Max two bullets.
+            - Roast the changes in a creative way. Format it as a quote using the ">"
+            symbol and feel free to use emojis where relevant. Max two sentences.
+
+            Avoid additional commentary as this will be added as a comment on the 
+            GitHub pull request.
+          summarize_release_notes: |
+            Provide the following content:
+
+            - **Database:** Describe any changes to the database in any
+            `.sql`-files. Ignore any changes to the `seed.sql`-file.
+            - **Functions:** Describe changes to functions as a
+            bullet list. Don't describe direct code changes, but raher the change
+            in functionality and behavior of the function.
+            - **Other:** Describe any other changes that are not covered by the
+            above sections.
+
+            Create a h2 header for each section and format the response using
+            markdown. Avoid additional commentary as this will be added as a
+            changelog on the GitHub pull request. Keep the response short and
+            concise, max 4 bullet points per section. Never make a bullet point
+            per file or function, but rather describe the changes in a general
+            manner.
