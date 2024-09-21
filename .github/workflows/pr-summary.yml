@@ -52,10 +52,9 @@ jobs:
           summarize_release_notes: |
             Provide the following content:
 
-            - **Database:** Describe any changes to the database schema in any
-            `.sql`-files. List changes to tables and columms. Ignore 
-            any changes to the seed.sql file.
-            - **Functions:** Describe functional changes to any functions as a
+            - **Database:** Describe any changes to the database in any
+            `.sql`-files. Ignore any changes to the `seed.sql`-file.
+            - **Functions:** Describe changes to functions as a
             bullet list. Don't describe direct code changes, but raher the change
             in functionality and behavior of the function.
             - **Other:** Describe any other changes that are not covered by the
