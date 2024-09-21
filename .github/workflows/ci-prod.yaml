@@ -15,11 +15,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    environment: production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD_PROD }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF_PROD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,11 +45,10 @@ jobs:
 
   check-push:
     runs-on: ubuntu-latest
-    environment: production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD_PROD }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF_PROD }}
 
     steps:
       - uses: actions/checkout@v4
