@@ -46,5 +46,5 @@ jobs:
         with:
           title: 'Release ${{ inputs.release }}'
           branch: 'release/${{ inputs.release }}'
-          base: develop
+          base: main
           reviewers: mrkallerud
