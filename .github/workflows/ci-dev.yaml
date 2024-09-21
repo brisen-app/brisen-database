@@ -5,8 +5,11 @@ on:
   pull_request:
     branches:
       - develop
-    paths:
-      - supabase/**/*
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -56,20 +59,25 @@ jobs:
         with:
           version: latest
 
+      - name: Start Supabase and link project
+        run: |
+          supabase db start
+          supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+
       - name: Check push
         id: check-push
         run: |
-          if ! output=$(supabase db push --dry-run); then
+          if ! output=$(supabase db push --include-roles --dry-run); then
             echo "::error::Failed to execute supabase db push command"
             exit 1
           fi
 
-          if [[ $output =~ "Remote migration versions not found in supabase\migrations directory." ]]; then
+          if [[ $output =~ "migration versions not found in supabase\migrations directory." ]]; then
             echo "::error::Remote migration versions not found in supabase\migrations directory."
             exit 1
           fi
 
-          if [[ ! $output =~ "Linked project is up to date." ]] && [[ ! $output =~ "Finished supabase db push." ]]; then
-            echo "::error::Unexpected output from supabase db push command"
+          if [[ ! $output =~ "is up to date." ]] && [[ ! $output =~ "Finished supabase db push." ]]; then
+            echo "::error::Unexpected output from supabase db push command: $output"
             exit 1
           fi
