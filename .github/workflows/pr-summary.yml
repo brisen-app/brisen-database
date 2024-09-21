@@ -53,8 +53,9 @@ jobs:
           summarize_release_notes: |
             Provide the following content:
 
-            - **Database:** Provide a bullet list with any changes to the database
-            schema in the added migration sql-file.
+            - **Database:** Describe any changes to the database schema in the
+            added migration sql-file. List changes to tables and columms. Ignore 
+            any changes to the seed.sql file.
             - **Functions:** Describe functional changes to any functions as a
             bullet list. Don't describe direct code changes, but raher the change
             in functionality and behavior of the function.
