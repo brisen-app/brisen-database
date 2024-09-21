@@ -63,4 +63,6 @@ jobs:
             Create a h2 header for each section and format the response using
             markdown. Avoid additional commentary as this will be added as a
             changelog on the GitHub pull request. Keep the response short and
-            concise, max 4 bullet points per section.
+            concise, max 4 bullet points per section. Never make a bullet point
+            per file or function, but rather describe the changes in a general
+            manner.
