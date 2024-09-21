@@ -35,22 +35,18 @@ jobs:
           supabase db start
           supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
 
-      - name: Ensure migrations directory exists
-        run: mkdir -p supabase/migrations
-
       - name: Fetch changes and test data
         id: fetch
         run: |
-          supabase db pull ${{ inputs.release }} -s public,extensions,storage,auth,cron
+          mkdir -p supabase/migrations
+          supabase db pull ${{ inputs.release }}
           supabase db dump --data-only -s extensions,storage,auth -f supabase/seed.sql
-          supabase db dump --data-only -s public -f supabase/backup.sql
-          supabase db dump -s public -f supabase/schema.sql
 
       - name: Create Pull Request
         id: create_pr
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: 'Release ${{ inputs.release }}'
           branch: 'release/${{ inputs.release }}'
-          base: main
+          draft: true
           reviewers: mrkallerud
