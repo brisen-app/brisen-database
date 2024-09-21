@@ -39,8 +39,8 @@ jobs:
         id: fetch
         run: |
           mkdir -p supabase/migrations
-          supabase db pull ${{ inputs.release }}
-          supabase db dump --data-only -s extensions,storage,auth -f supabase/seed.sql
+          supabase db pull ${{ inputs.release }} -s public,extensions,storage,auth
+          supabase db dump --data-only -s public,extensions,storage,auth -f supabase/seed.sql
 
       - name: Create Pull Request
         id: create_pr
