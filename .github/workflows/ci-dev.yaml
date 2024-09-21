@@ -56,10 +56,15 @@ jobs:
         with:
           version: latest
 
+      - name: Start Supabase and link project
+        run: |
+          supabase db start
+          supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+
       - name: Check push
         id: check-push
         run: |
-          if ! output=$(supabase db push --dry-run); then
+          if ! output=$(supabase db push --include-roles --dry-run); then
             echo "::error::Failed to execute supabase db push command"
             exit 1
           fi

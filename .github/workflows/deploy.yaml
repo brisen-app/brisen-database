@@ -32,5 +32,5 @@ jobs:
 
       - name: Deploy
         run: |
-          supabase db push
+          supabase db push --include-roles
           supabase functions deploy

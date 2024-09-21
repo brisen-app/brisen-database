@@ -41,8 +41,8 @@ jobs:
       - name: Fetch changes and test data
         id: fetch
         run: |
-          supabase db pull ${{ inputs.release }}
-          supabase db dump --schema public --data-only -f supabase/seed.sql
+          supabase db pull ${{ inputs.release }} -s public,extensions,storage,auth,cron
+          supabase db dump -s public,extensions,storage,auth
 
       - name: Create Pull Request
         id: create_pr

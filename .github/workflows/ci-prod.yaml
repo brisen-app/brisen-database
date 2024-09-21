@@ -64,7 +64,7 @@ jobs:
       - name: Check push
         id: check-push
         run: |
-          if ! output=$(supabase db push --dry-run); then
+          if ! output=$(supabase db push --include-roles --dry-run); then
             echo "::error::Failed to execute supabase db push command"
             exit 1
           fi
