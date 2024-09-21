@@ -42,8 +42,8 @@ jobs:
         id: fetch
         run: |
           supabase db pull ${{ inputs.release }} -s public,extensions,storage,auth,cron
-          supabase db dump --data-only --role-only -s extensions,storage,auth -f supabase/seed.sql
-          supabase db dump --data-only --role-only -s public -f supabase/backup.sql
+          supabase db dump --data-only -s extensions,storage,auth -f supabase/seed.sql
+          supabase db dump --data-only -s public -f supabase/backup.sql
           supabase db dump -s public -f supabase/schema.sql
 
       - name: Create Pull Request
