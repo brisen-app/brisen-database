@@ -75,6 +75,6 @@ jobs:
           fi
 
           if [[ ! $output =~ "Linked project is up to date." ]] && [[ ! $output =~ "Finished supabase db push." ]]; then
-            echo "::error::Unexpected output from supabase db push command"
+            echo "::error::Unexpected output from supabase db push command: $output"
             exit 1
           fi
