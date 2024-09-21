@@ -35,12 +35,13 @@ jobs:
           supabase db start
           supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
 
-      - name: Fetch changes and test data
+      - name: Fetch changes and backup data
         id: fetch
         run: |
           mkdir -p supabase/migrations
           supabase db pull ${{ inputs.release }} -s public,extensions,storage,auth
           supabase db dump --data-only -s public,extensions,storage,auth -f supabase/seed.sql
+          supabase db dump -s public,extensions,storage,auth -f supabase/schema.sql
 
       - name: Create Pull Request
         id: create_pr
