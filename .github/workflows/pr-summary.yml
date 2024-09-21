@@ -51,7 +51,12 @@ jobs:
             Avoid additional commentary as this will be added as a comment on the 
             GitHub pull request.
           summarize_release_notes: |
-            List changes as a bullet list. Focus on database schema changes
-            and changes to functions, ignore any changes to the seed.sql file.
-            Create a heading for the database schema changes and a heading for
-            each function change. Use markdown formatting.
+            Provide a changelog in markdown with the following content:
+
+            - **Database:** Provide a bullet list with any changes to the database
+            schema. Ignore any changes to the seed data.
+            - **Functions:** Create a subheading for each modified function and
+            provide a bullet list with changes to how the function works.
+
+            Avoid additional commentary as this will be added as a changelog on the 
+            GitHub pull request.
