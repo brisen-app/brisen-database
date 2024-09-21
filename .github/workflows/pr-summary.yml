@@ -44,7 +44,6 @@ jobs:
 
             - If necessary, suggest some improvements to the changes in the form
             of a bullet list. Max two bullets.
-
             - Roast the changes in a creative way. Format it as a quote using the ">"
             symbol and feel free to use emojis where relevant. Max two sentences.
 
@@ -53,8 +52,8 @@ jobs:
           summarize_release_notes: |
             Provide the following content:
 
-            - **Database:** Describe any changes to the database schema in the
-            added migration sql-file. List changes to tables and columms. Ignore 
+            - **Database:** Describe any changes to the database schema in any
+            `.sql`-files. List changes to tables and columms. Ignore 
             any changes to the seed.sql file.
             - **Functions:** Describe functional changes to any functions as a
             bullet list. Don't describe direct code changes, but raher the change
