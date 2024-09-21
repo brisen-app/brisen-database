@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to Development
 
 on:
   workflow_dispatch:
@@ -6,7 +6,11 @@ on:
     branches:
       - develop
     paths:
-      - 'supabase/**/*'
+      - supabase/**/*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy-dev:
@@ -14,8 +18,8 @@ jobs:
     environment: development
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD_DEV }}
+      SUPABASE_PROJECT_ID: ${{ vars.PROJECT_REF_DEV }}
 
     steps:
       - uses: actions/checkout@v4
@@ -28,5 +32,5 @@ jobs:
 
       - name: Deploy
         run: |
-          supabase db push
+          supabase db push --include-roles
           supabase functions deploy
