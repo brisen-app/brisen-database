@@ -58,6 +58,11 @@ jobs:
         with:
           version: latest
 
+      - name: Start Supabase and link project
+        run: |
+          supabase db start
+          supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+
       - name: Check push
         id: check-push
         run: |
