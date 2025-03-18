@@ -31,6 +31,7 @@ Deno.serve(async (request) => {
 
     console.log(logResponse.title, 'in', (Date.now() - logResponse.timestamp.getTime()) / 1000, 'sec')
   } catch (error) {
+    if (!(error instanceof Error)) throw error
     console.error('Internal Server Error', error)
     responseInit.status = 500
     logResponse.title = `Internal Sever Error: ${error.message}`

@@ -8,7 +8,7 @@
     "db:login": "npx supabase login",
     "db:pull": "supabase db pull --local -s public,extensions,storage,auth",
     "db:reset": "npx supabase db reset --local",
-    "db:serve": "npx supabase functions serve --no-verify-jwt --env-file supabase/env.local",
+    "db:serve": "npx supabase functions serve --no-verify-jwt --env-file supabase/.env.local",
     "db:unlink": "rm -rf supabase/.temp",
     "db:up": "npx supabase migration up"
   },

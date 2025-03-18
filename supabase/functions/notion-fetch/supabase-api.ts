@@ -1,6 +1,6 @@
 // Docs: https://supabase.com/docs/reference/javascript/introduction
 
-import { PostgrestError, createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
+import { PostgrestError, createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { Database } from './supabase.ts'
 import { SupabaseItem, SupabaseTableName } from './models.ts'
 import NotionAPI from './notion-api.ts'
@@ -31,7 +31,7 @@ async function fetchItems(table: SupabaseTableName) {
 }
 
 async function pushItem(
-  table: string,
+  table: SupabaseTableName,
   item: { [key: string]: SupabaseAttributeType | undefined },
   tries = 3
 ): Promise<void> {
@@ -54,12 +54,12 @@ async function pushItem(
 }
 
 async function handleItemNotPresent(
-  index: string,
+  index: SupabaseTableName,
   item: { [key: string]: SupabaseAttributeType | undefined },
   error: PostgrestError
 ) {
   const key = RegExp(/Key \(([^)]+)\)/).exec(error.details)?.[1]
-  const table = RegExp(/table "(.*?)"/).exec(error.details)?.[1]
+  const table = RegExp(/table "(.*?)"/).exec(error.details)?.[1] as SupabaseTableName
   if (!key || !table) throw error
 
   const id = item[key] as string
@@ -75,7 +75,7 @@ async function handleItemNotPresent(
   return await pushItem(index, item)
 }
 
-async function deleteItem(table: string, item: { id: string }) {
+async function deleteItem(table: SupabaseTableName, item: { id: string }) {
   const start = Date.now()
   const response = await supabase.from(table).delete().eq('id', item.id)
 
