@@ -29,6 +29,9 @@ jobs:
           supabase db start
           supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
 
+      - name: Run lint
+        run: supabase db lint --fail-on warning
+
       - name: Run tests
         run: supabase test db
 
