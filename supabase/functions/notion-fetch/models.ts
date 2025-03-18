@@ -1,5 +1,5 @@
 import { SupabaseAttributeType } from './notion-parser.ts'
-import { Database } from './supabase.ts'
+import { Database } from '../_shared/supabase_types.ts'
 
 export enum SyncAction {
   PUBLISH = 'publish',
