@@ -1,10 +1,10 @@
-// Docs: https://supabase.com/docs/reference/javascript/introduction
-
 import { PostgrestError, createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
-import { Database } from './supabase.ts'
+import { Database } from '../_shared/supabase_types.ts'
 import { SupabaseItem, SupabaseTableName } from './models.ts'
 import NotionAPI from './notion-api.ts'
 import { SupabaseAttributeType } from './notion-parser.ts'
+
+// Docs: https://supabase.com/docs/reference/javascript/introduction
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 if (!SUPABASE_URL) throw new Error('SUPABASE_URL is required!')

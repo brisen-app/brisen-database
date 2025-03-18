@@ -1,4 +1,4 @@
-import { LogType, DatabaseIndex, NotionLog, SupabaseItem, SyncAction } from './models.ts'
+import { DatabaseIndex, LogType, NotionLog, SupabaseItem, SyncAction } from './models.ts'
 import NotionAPI from './notion-api.ts'
 import { Relation, extractRelations, getRelationTable } from './relation-handler.ts'
 import Supabase from './supabase-api.ts'
