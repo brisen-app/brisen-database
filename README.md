@@ -57,5 +57,8 @@ NOTION_SECRET=<notion_secret>
 
 1. Make changes in the [Supabase Studio](http://127.0.0.1:54323/) or to the edge functions.
 
-- Start edge function with `npm run serve` and test with Postman using `POST http://localhost:54321/rest/v1/edge/<function_name>`.
-- Make sure `env.local` is set up correctly.
+   - Start edge function with `npm run serve` and test with Postman using `POST http://localhost:54321/rest/v1/edge/<function_name>`.
+   - Make sure `env.local` is set up correctly.
+
+1. Run `npm run db:pull` and commit the new migration to the repo.
+   - Add `-- <name>` to t give your migration a name.
