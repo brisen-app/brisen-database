@@ -3,6 +3,7 @@
     "start": "npx supabase start",
     "upgrade": "deno add npm:supabase --dev --allow-scripts",
     "stop": "npx supabase stop",
+    "db:gen-types": "npx supabase gen types typescript --local --schema public > supabase/functions/_shared/supabase_types.ts",
     "db:link-dev": "npx supabase link --project-ref tlnldlywflpgvjepxwxz",
     "db:link-prod": "npx supabase link --project-ref bqimlisytxvraplzjnei",
     "db:login": "npx supabase login",
