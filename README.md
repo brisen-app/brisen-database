@@ -61,4 +61,4 @@ NOTION_SECRET=<notion_secret>
    - Make sure `env.local` is set up correctly.
 
 1. Run `npm run db:pull` and commit the new migration to the repo.
-   - Add `-- <name>` to t give your migration a name.
+   - Add `-- <name>` to give your migration a name.
