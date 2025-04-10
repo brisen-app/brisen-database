@@ -21,7 +21,7 @@ if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 const notion = new Client({ auth: NOTION_SECRET })
 
 export default class NotionAPI {
-  private static queryCache: Map<string, PageObjectResponse[]> = new Map()
+  private static readonly queryCache: Map<string, PageObjectResponse[]> = new Map()
 
   private static async query(
     table: string,
