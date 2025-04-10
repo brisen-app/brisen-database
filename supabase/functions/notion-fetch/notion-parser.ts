@@ -170,7 +170,7 @@ function parseRollup(key: string, value: RollupProperty): string | number | Date
 }
 
 function parseDate(date: DateResponse | null) {
-  return date?.start ? new Date(Date.parse(date!.start)) : null
+  return date?.start ? new Date(Date.parse(date.start)) : null
 }
 
 function parseFiles(files: FilesProperty): string[] | null {

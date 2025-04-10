@@ -1,6 +1,21 @@
 {
+  "scripts": {
+    "start": "supabase start",
+    "upgrade": "deno add npm:supabase --dev --allow-scripts",
+    "stop": "supabase stop",
+    "db:gen-types": "supabase gen types typescript --local --schema public > supabase/functions/_shared/supabase_types.ts",
+    "db:link-dev": "supabase link --project-ref tlnldlywflpgvjepxwxz",
+    "db:link-prod": "supabase link --project-ref bqimlisytxvraplzjnei",
+    "db:login": "supabase login",
+    "db:test": "supabase db push --include-roles --dry-run",
+    "db:pull": "supabase db pull --local -s public,extensions,storage,auth",
+    "db:reset": "supabase db reset --local",
+    "db:serve": "supabase functions serve --no-verify-jwt --env-file supabase/.env.local",
+    "db:unlink": "rm -rf supabase/.temp",
+    "db:up": "supabase migration up"
+  },
   "devDependencies": {
-    "supabase": "^1.142.2"
+    "supabase": "^2.20.12"
   },
   "prettier": {
     "trailingComma": "es5",

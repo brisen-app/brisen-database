@@ -5,11 +5,6 @@ on:
   pull_request:
     branches:
       - develop
-    types:
-      - opened
-      - ready_for_review
-      - reopened
-      - synchronize
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +28,9 @@ jobs:
         run: |
           supabase db start
           supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+
+      - name: Run lint
+        run: supabase db lint --fail-on warning
 
       - name: Run tests
         run: supabase test db

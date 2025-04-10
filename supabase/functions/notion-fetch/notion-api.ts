@@ -4,10 +4,10 @@ import {
   PageObjectResponse,
   QueryDatabaseParameters,
 } from 'https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts'
-import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
-import { LogType, DatabaseIndex, NotionLog, SyncAction, isDatabaseIndexList } from './models.ts'
-import { parse, toNotionProperties } from './notion-parser.ts'
 import { isFullPage } from 'https://deno.land/x/notion_sdk@v2.2.3/src/helpers.ts'
+import { Client } from 'https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts'
+import { DatabaseIndex, LogType, NotionLog, SyncAction, isDatabaseIndexList } from './models.ts'
+import { parse, toNotionProperties } from './notion-parser.ts'
 
 // Database ids
 enum DatabaseIdentifier {
@@ -21,7 +21,7 @@ if (!NOTION_SECRET) throw new Error('NOTION_SECRET is required!')
 const notion = new Client({ auth: NOTION_SECRET })
 
 export default class NotionAPI {
-  private static queryCache: Map<string, PageObjectResponse[]> = new Map()
+  private static readonly queryCache: Map<string, PageObjectResponse[]> = new Map()
 
   private static async query(
     table: string,
@@ -68,6 +68,8 @@ export default class NotionAPI {
         tries--
       }
     }
+
+    NotionAPI.queryCache.set(cacheKey, results)
 
     return results
   }
@@ -135,7 +137,7 @@ export default class NotionAPI {
       timestamp: new Date(),
       exact_time: Date.now(),
       type: LogType.ERROR,
-      details: error?.stack,
+      details: error?.stack?.slice(0, 2000),
       entity: JSON.stringify(entity, null, 2),
     })
   }
@@ -146,7 +148,7 @@ export default class NotionAPI {
       timestamp: new Date(),
       exact_time: Date.now(),
       type: LogType.WARN,
-      details: error?.stack,
+      details: error?.stack?.slice(0, 2000),
       entity: JSON.stringify(entity, null, 2),
     })
   }

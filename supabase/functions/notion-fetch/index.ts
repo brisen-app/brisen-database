@@ -1,4 +1,4 @@
-import { LogType, DatabaseIndex, NotionLog, SupabaseItem, SyncAction } from './models.ts'
+import { DatabaseIndex, LogType, NotionLog, SupabaseItem, SyncAction } from './models.ts'
 import NotionAPI from './notion-api.ts'
 import { Relation, extractRelations, getRelationTable } from './relation-handler.ts'
 import Supabase from './supabase-api.ts'
@@ -31,9 +31,10 @@ Deno.serve(async (request) => {
 
     console.log(logResponse.title, 'in', (Date.now() - logResponse.timestamp.getTime()) / 1000, 'sec')
   } catch (error) {
+    if (!(error instanceof Error)) throw error
     console.error('Internal Server Error', error)
     responseInit.status = 500
-    logResponse.title = `Internal Sever Error: ${error.message}`
+    logResponse.title = `Internal Server Error: ${error.message}`
     logResponse.type = LogType.ERROR
     logResponse.details = error.stack
   }
