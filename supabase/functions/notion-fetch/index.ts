@@ -34,7 +34,7 @@ Deno.serve(async (request) => {
     if (!(error instanceof Error)) throw error
     console.error('Internal Server Error', error)
     responseInit.status = 500
-    logResponse.title = `Internal Sever Error: ${error.message}`
+    logResponse.title = `Internal Server Error: ${error.message}`
     logResponse.type = LogType.ERROR
     logResponse.details = error.stack
   }
